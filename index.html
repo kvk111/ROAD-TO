@@ -1,0 +1,1233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Road to 80</title>
+<meta name="description" content="Night-shift fitness log synced to your Google Sheet.">
+<meta name="theme-color" content="#0e1316">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Road to 80">
+<meta name="referrer" content="no-referrer">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0e1316; --surface:#151c20; --surface2:#1c252a; --line:#27333a; --line2:#34434b;
+  --text:#e3ecee; --muted:#8b9ca3; --faint:#5f7079;
+  --emerald:#34d399; --emerald-d:#0f3b2d; --cyan:#22d3ee; --cyan-d:#0d3440;
+  --warn:#f2b64c; --warn-d:#3a2c10; --danger:#f26d6d; --danger-d:#3d1717;
+  --violet:#a78bfa; --violet-d:#261f3d;
+  --display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:12px;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg);margin:0}
+body{color:var(--text);font-family:var(--body);font-size:14px;line-height:1.5;padding-inline:16px;padding-block:0 calc(80px + env(safe-area-inset-bottom,0px));-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+.wrap{max-width:1240px;margin:0 auto}
+button,input,select,textarea{font:inherit;color:inherit}
+button{touch-action:manipulation}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+a{color:var(--cyan)}
+code{font-family:var(--mono);font-size:12px;background:var(--surface2);padding:1px 5px;border-radius:4px}
+
+/* ---------- lock screen ---------- */
+.lock{position:fixed;inset:0;z-index:100;background:radial-gradient(120% 80% at 50% 0%,#132722 0%,var(--bg) 60%);display:flex;align-items:center;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) 16px calc(24px + env(safe-area-inset-bottom,0px));overflow-y:auto}
+.lock-in{width:100%;max-width:340px;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
+.lock-logo{width:72px;height:72px;border-radius:18px}
+.lock h1{font-family:var(--display);font-weight:700;font-size:28px;letter-spacing:.03em;text-transform:uppercase;margin:0}
+.lock h1 b{color:var(--emerald)}
+.lock p{margin:0;color:var(--muted);font-size:13px;max-width:30ch}
+.dots{display:flex;gap:12px;height:18px;align-items:center}
+.dots i{width:12px;height:12px;border-radius:50%;border:1.5px solid var(--line2);background:transparent;transition:.15s}
+.dots i.on{background:var(--emerald);border-color:var(--emerald)}
+.dots.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-4px)}}
+.pad{display:grid;grid-template-columns:repeat(3,72px);gap:12px;justify-content:center}
+.pad button{height:64px;border-radius:50%;border:1px solid var(--line);background:var(--surface);font-family:var(--display);font-size:26px;font-weight:600;cursor:pointer}
+.pad button:active{background:var(--surface2);border-color:var(--emerald)}
+.pad button.fn{font-family:var(--body);font-size:13px;font-weight:600;color:var(--muted);background:transparent;border-color:transparent}
+.bio-btn{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;cursor:pointer;color:var(--emerald);font-size:13px;font-weight:600}
+.bio-btn svg{width:56px;height:56px;padding:10px;border-radius:50%;border:1.5px solid #1d5a45;background:var(--emerald-d)}
+.lock-msg{min-height:20px;font-size:13px;color:var(--danger)}
+.lock-msg.ok{color:var(--emerald)}
+.lock .textbtn{background:none;border:0;color:var(--muted);font-size:12px;text-decoration:underline;cursor:pointer}
+
+/* ---------- top bar ---------- */
+.topbar{position:sticky;top:0;z-index:20;background:rgba(14,19,22,.92);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);margin-inline:-16px;padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px}
+.topbar .wrap{display:flex;align-items:center;gap:10px}
+.brand{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:.02em;text-transform:uppercase;white-space:nowrap}
+.brand b{color:var(--emerald)}
+.sync{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;min-width:0}
+.sync span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sync i{width:7px;height:7px;border-radius:50%;background:var(--faint);flex:none}
+.sync.ok i{background:var(--emerald)} .sync.busy i{background:var(--warn)} .sync.err i{background:var(--danger)}
+.iconbtn{width:36px;height:36px;border-radius:9px;border:1px solid var(--line2);background:var(--surface2);cursor:pointer;display:grid;place-items:center;flex:none}
+.iconbtn svg{width:18px;height:18px;stroke:var(--text);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- cards & layout ---------- */
+.hero{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:12px;margin-top:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.countdown{background:linear-gradient(135deg,#12221f 0%,var(--surface) 60%);border-color:#1f3a33}
+.cd-row{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-top:6px}
+.bignum{font-family:var(--display);font-weight:700;font-size:64px;line-height:.9;color:var(--emerald)}
+.bignum.dim{color:var(--faint)}
+.cd-unit{font-family:var(--display);font-size:20px;font-weight:600;padding-bottom:4px}
+.cd-sub{color:var(--muted);font-size:13px;margin-top:6px}
+.cd-sub b{color:var(--text);font-weight:600}
+.progress{margin-top:14px}
+.bar{height:10px;border-radius:6px;background:var(--surface2);overflow:hidden;border:1px solid var(--line)}
+.bar>span{display:block;height:100%;background:linear-gradient(90deg,var(--emerald),var(--cyan));border-radius:6px;transition:width .6s ease}
+.bar-scale{display:flex;justify-content:space-between;gap:8px;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px}
+.stat{display:flex;flex-direction:column;gap:4px}
+.stat .val{font-family:var(--display);font-weight:700;font-size:44px;line-height:1}
+.stat .val small{font-size:18px;color:var(--muted);font-weight:600;margin-left:4px}
+.streak .val{color:var(--cyan)}
+.flames{display:flex;gap:4px;margin-top:8px}
+.flames span{flex:1;height:6px;border-radius:3px;background:var(--surface2)}
+.flames span.on{background:var(--cyan)} .flames span.rest{background:var(--violet)}
+.pill{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-family:var(--mono);font-size:13px;margin-top:6px}
+.pill .chip{padding:3px 8px;border-radius:999px;background:var(--surface2);border:1px solid var(--line)}
+.net{font-family:var(--display);font-weight:700;font-size:40px;line-height:1;margin-top:8px}
+.net.good{color:var(--emerald)} .net.bad{color:var(--danger)}
+.meta{font-size:12px;color:var(--muted)}
+.main{display:grid;grid-template-columns:minmax(0,440px) minmax(0,1fr);gap:16px;margin-top:16px;align-items:start}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.section-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.section-h h2{font-family:var(--display);font-weight:600;font-size:18px;letter-spacing:.03em;text-transform:uppercase;margin:0}
+.section-h .tot{font-family:var(--mono);font-size:13px;color:var(--emerald);white-space:nowrap}
+.section-h .tot.out{color:var(--cyan)}
+fieldset{border:0;margin:0;padding:0;min-width:0}
+fieldset:disabled .switch span,fieldset:disabled .stepper,fieldset:disabled .inp,fieldset:disabled .seg button{opacity:.55}
+
+/* shift card */
+.shiftcard .top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.shiftcard strong{font-family:var(--display);font-size:24px;font-weight:700;line-height:1.1;display:block}
+.badge{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:999px;border:1px solid var(--line2);margin-left:auto;white-space:nowrap}
+.badge.draft{color:var(--warn);border-color:#5a4418;background:var(--warn-d)}
+.badge.locked{color:var(--emerald);border-color:#1d5a45;background:var(--emerald-d)}
+.badge.pending{color:var(--cyan);border-color:#1a5563;background:var(--cyan-d)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{flex:1;min-width:0;height:38px;padding:0 10px;border-radius:9px;border:1px solid var(--line2);background:var(--surface2);cursor:pointer;font-size:13px;white-space:nowrap}
+.seg button[aria-pressed="true"]{border-color:var(--cyan);background:var(--cyan-d)}
+.seg.day button[aria-pressed="true"][data-v="Rest"],.seg.day button[aria-pressed="true"][data-v="Sick"]{border-color:var(--violet);background:var(--violet-d)}
+
+/* rows */
+.item{display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line)}
+.item.first{border-top:0;padding-top:0}
+.item .txt{flex:1;min-width:0}
+.item .t{font-weight:600}
+.item .s{font-size:12px;color:var(--muted)}
+.time{font-family:var(--mono);font-size:11px;color:var(--cyan);margin-right:6px}
+.kcal{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap}
+.switch{position:relative;width:48px;height:28px;flex:none}
+.switch input{position:absolute;inset:0;opacity:0;margin:0;cursor:pointer;z-index:1}
+.switch span{position:absolute;inset:0;border-radius:999px;background:var(--surface2);border:1px solid var(--line2);transition:.2s}
+.switch span::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--muted);transition:.2s}
+.switch input:checked+span{background:var(--emerald-d);border-color:var(--emerald)}
+.switch input:checked+span::after{left:23px;background:var(--emerald)}
+.switch input:focus-visible+span{outline:2px solid var(--cyan);outline-offset:2px}
+.stepper{display:flex;align-items:center;border:1px solid var(--line2);border-radius:10px;overflow:hidden;flex:none}
+.stepper button{width:40px;height:40px;border:0;background:var(--surface2);cursor:pointer;font-size:18px}
+.stepper output,.stepper .o{min-width:48px;text-align:center;font-family:var(--mono);font-size:15px}
+.sub-h{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field label{font-size:12px;color:var(--muted)}
+.inp{width:100%;min-width:0;height:42px;padding:0 12px;border-radius:10px;border:1px solid var(--line2);background:var(--bg);font-family:var(--mono);font-size:15px}
+.inp:focus{border-color:var(--cyan);outline:none}
+textarea.inp{height:84px;padding:10px 12px;font-family:var(--body);font-size:14px;resize:vertical}
+select.inp{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 18px,calc(100% - 13px) 18px;background-size:5px 5px;background-repeat:no-repeat;padding-right:34px;font-family:var(--body);font-size:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.extra-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,.8fr) auto;gap:8px;align-items:end}
+.custom-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,.8fr);gap:8px;margin-top:8px}
+.flag{font-size:12px;padding:8px 10px;border-radius:8px;margin-top:8px}
+.flag.warn{background:var(--warn-d);color:var(--warn);border:1px solid #5a4418}
+.flag.danger{background:var(--danger-d);color:var(--danger);border:1px solid #5c2424}
+.flag.ok{background:var(--emerald-d);color:var(--emerald);border:1px solid #1d5a45}
+.flag.info{background:var(--cyan-d);color:var(--cyan);border:1px solid #1a5563}
+.inp.bad{border-color:var(--danger);color:var(--danger)}
+.extras{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.extra{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border-radius:8px;font-size:13px}
+.extra span{flex:1;min-width:0;overflow-wrap:anywhere}
+.extra .x{border:0;background:none;color:var(--muted);cursor:pointer;font-size:18px;padding:0 6px}
+.btn{height:42px;padding:0 14px;border-radius:10px;border:1px solid var(--line2);background:var(--surface2);cursor:pointer;font-weight:600;white-space:nowrap}
+.btn:hover:not(:disabled){border-color:var(--cyan)}
+.btn:disabled{opacity:.45;cursor:default}
+.btn.primary{background:var(--emerald);color:#062a1e;border-color:var(--emerald)}
+.btn.danger{color:var(--danger);border-color:#5c2424;background:var(--danger-d)}
+.btn.big{height:52px;font-size:16px;width:100%}
+.saved-meals{font-size:13px;padding:10px 12px;background:var(--surface2);border-radius:8px;overflow-wrap:anywhere}
+.burnrow{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--muted);padding:4px 0}
+.burnrow b{color:var(--text);font-weight:500}
+.burnrow.total{border-top:1px solid var(--line);margin-top:6px;padding-top:8px;color:var(--cyan)}
+.burnrow.total b{color:var(--cyan)}
+.steps-wrap{display:flex;gap:14px;align-items:center}
+.ring{width:84px;height:84px;flex:none}
+.ring circle{fill:none;stroke-width:8}
+.ring .bg{stroke:var(--surface2)} .ring .fg{stroke:var(--cyan);stroke-linecap:round;transition:stroke-dashoffset .5s}
+.ring text{fill:var(--text);font-family:var(--mono);font-size:13px}
+.water{display:flex;align-items:center;gap:12px}
+.glasses{display:flex;gap:3px;flex:1;flex-wrap:wrap}
+.glasses span{width:14px;height:22px;border-radius:2px 2px 4px 4px;border:1px solid var(--line2);background:var(--surface2)}
+.glasses span.on{background:var(--cyan);border-color:var(--cyan)}
+.glasses span.tgt{box-shadow:inset 0 -3px 0 var(--emerald)}
+.savecard .sum{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-family:var(--mono);font-size:12px;color:var(--muted);margin:10px 0 14px}
+.savecard .sum b{color:var(--text);font-weight:500}
+.confirm-row{display:flex;gap:8px;margin-top:10px}
+.confirm-row .btn{flex:1}
+
+/* BP estimate card */
+.bpcard .pair{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bpbox{border-radius:10px;padding:12px;border:1px solid var(--line)}
+.bpbox.measured{background:var(--surface2)}
+.bpbox.est{border-style:dashed;border-color:var(--violet);background:var(--violet-d)}
+.bpbox .tag{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:4px;display:inline-block}
+.bpbox.measured .tag{background:var(--line);color:var(--text)}
+.bpbox.est .tag{background:transparent;border:1px solid var(--violet);color:var(--violet)}
+.bpbox .v{font-family:var(--display);font-weight:700;font-size:34px;line-height:1.05;margin-top:6px}
+.bpbox.est .v{color:var(--violet)}
+.bpbox .v small{font-size:15px;color:var(--muted);font-weight:600;margin-left:3px}
+
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.charts .wide{grid-column:1/-1}
+.chart-box{position:relative;height:230px}
+.chart-box.tall{height:280px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.empty-chart{position:absolute;inset:0;display:grid;place-items:center;color:var(--faint);font-size:13px;text-align:center;padding:16px}
+.hist{width:100%;border-collapse:collapse;font-size:13px}
+.hist th{text-align:left;font-family:var(--mono);font-size:11px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:6px 8px;border-bottom:1px solid var(--line)}
+.hist td{padding:8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;font-family:var(--mono);white-space:nowrap}
+.hist td.pos{color:var(--emerald)} .hist td.neg{color:var(--danger)} .hist td.hi{color:var(--danger)} .hist td.rest{color:var(--violet)} .hist td.pend{color:var(--cyan)}
+.tablewrap{overflow-x:auto}
+.export{display:flex;gap:8px;flex-wrap:wrap;align-items:end}
+
+/* settings sheet */
+.settings{margin-top:16px}
+.settings .rows{display:flex;flex-direction:column;gap:14px}
+.settings .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;background:var(--surface2);border:1px solid var(--line2);padding:10px 16px;border-radius:10px;font-size:13px;transition:.25s;pointer-events:none;z-index:120;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (max-width:1000px){ .hero{grid-template-columns:1fr 1fr} .countdown{grid-column:1/-1} .main{grid-template-columns:1fr} }
+@media (max-width:560px){ .bignum{font-size:54px} .stat .val{font-size:34px} .net{font-size:30px} .charts{grid-template-columns:1fr} .chart-box{height:210px} .bpbox .v{font-size:28px} }
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ================= LOCK SCREEN ================= -->
+<div class="lock" id="lock" role="dialog" aria-modal="true" aria-labelledby="lockTitle">
+  <div class="lock-in">
+    <img class="lock-logo" src="icons/icon-192.png" alt="">
+    <h1 id="lockTitle">Road to <b>80</b></h1>
+    <p id="lockHint">Enter your PIN</p>
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <div class="lock-msg" id="lockMsg" role="status"></div>
+    <button class="bio-btn" id="bioBtn" type="button" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M12 11v3.5c0 2 .6 3.8 1.6 5.2"/><path d="M8.6 9.2A3.5 3.5 0 0 1 15.5 11v2.5c0 1.5.3 3 .9 4.3"/><path d="M8.5 12.5v1.5c0 2.6.8 5 2.2 6.8"/><path d="M5.6 7.2A7 7 0 0 1 19 11v2c0 .9.1 1.8.3 2.6"/><path d="M5 11v3c0 1.8.4 3.5 1.1 5"/><path d="M8 3.8A9 9 0 0 1 20.6 7"/></svg>
+      <span id="bioLabel">Unlock with fingerprint</span>
+    </button>
+    <div class="pad" id="pad"></div>
+    <div id="bioOffer" hidden style="display:flex;flex-direction:column;gap:10px;width:100%">
+      <button class="btn primary big" type="button" id="bioEnable">Use fingerprint to unlock</button>
+      <button class="btn big" type="button" id="bioSkip">Not now, PIN only</button>
+    </div>
+    <button class="textbtn" type="button" id="forgotBtn" hidden>Forgot PIN?</button>
+    <button class="textbtn" type="button" id="changeCancel" hidden>Cancel, keep current PIN</button>
+    <div id="resetBox" hidden style="width:100%">
+      <div class="flag warn" style="text-align:left">Resetting clears the PIN, fingerprint and saved connection on this device. Your Google Sheet is not touched. You will need your web-app URL and API token again.</div>
+      <div class="confirm-row"><button class="btn" type="button" id="resetCancel">Back</button><button class="btn danger" type="button" id="resetConfirm">Reset device</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="app" hidden>
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand">Road to <b>80</b></div>
+    <div class="sync" id="sync"><i></i><span>Loading…</span></div>
+    <button class="iconbtn" id="refreshBtn" type="button" aria-label="Sync now"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3v5h5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 21v-5h-5"/></svg></button>
+    <button class="iconbtn" id="settingsBtn" type="button" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- Settings / connection -->
+  <section class="card settings" id="settings" hidden>
+    <div class="section-h"><h2>Settings</h2><button class="btn" type="button" id="settingsClose">Done</button></div>
+    <div class="rows">
+      <form id="connForm" class="col" autocomplete="off">
+        <div class="sub-h" style="margin:0">Google Sheet connection</div>
+        <div class="field"><label for="apiUrl">Apps Script web-app URL</label><input class="inp" id="apiUrl" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec" required></div>
+        <div class="field"><label for="apiToken">API token</label><input class="inp" id="apiToken" type="password" placeholder="From the setup log in Apps Script" required></div>
+        <div class="row"><button class="btn primary" type="submit">Save & test connection</button><span class="meta" id="connMsg"></span></div>
+      </form>
+      <div>
+        <div class="sub-h" style="margin-top:0">App lock</div>
+        <div class="row">
+          <button class="btn" type="button" id="bioToggle">Enable fingerprint</button>
+          <button class="btn" type="button" id="pinChange">Change PIN</button>
+          <button class="btn" type="button" id="lockNow">Lock now</button>
+        </div>
+        <p class="meta" id="lockInfo" style="margin:8px 0 0"></p>
+      </div>
+      <div>
+        <div class="sub-h" style="margin-top:0">Install</div>
+        <div class="row"><button class="btn" type="button" id="installBtn" hidden>Install app</button><span class="meta" id="installInfo">On Android: Chrome menu ⋮ → Install app / Add to Home screen.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="hero">
+    <div class="card countdown">
+      <div class="eyebrow">Days to 80 kg · 7-day avg deficit</div>
+      <div class="cd-row"><div class="bignum num dim" id="cdDays">—</div><div class="cd-unit" id="cdUnit">days</div></div>
+      <div class="cd-sub" id="cdSub">Loading your history…</div>
+      <div class="progress">
+        <div class="bar"><span id="progBar" style="width:0%"></span></div>
+        <div class="bar-scale num"><span>110 kg</span><span id="progNow">0.0 kg lost</span><span>80 kg</span></div>
+      </div>
+    </div>
+    <div class="card stat streak">
+      <div class="eyebrow">Active streak</div>
+      <div class="val num" id="streak">0<small>days</small></div>
+      <div class="flames" id="flames"></div>
+      <div class="meta" id="streakMeta">Consecutive shifts saved</div>
+    </div>
+    <div class="card stat">
+      <div class="eyebrow">Shift balance</div>
+      <div class="pill num"><span class="chip" id="pIn">In 0</span><span>−</span><span class="chip" id="pOut">Out 0</span></div>
+      <div class="net num" id="pNet">0 kcal</div>
+      <div class="meta" id="pNetMeta">Net balance</div>
+    </div>
+  </section>
+
+  <div class="main">
+    <div class="col">
+      <!-- SHIFT -->
+      <div class="card shiftcard">
+        <div class="top">
+          <div><div class="eyebrow" id="shiftEyebrow">Current shift</div><strong id="shiftLabel">—</strong></div>
+          <span class="badge draft" id="shiftBadge">Draft</span>
+        </div>
+        <div class="seg" id="shiftSeg" style="margin-top:12px" hidden></div>
+        <fieldset id="fsDay" style="margin-top:12px">
+          <div class="seg day" id="daySeg" role="group" aria-label="Day type">
+            <button type="button" data-v="Shift">Work shift</button>
+            <button type="button" data-v="Rest">Rest day</button>
+            <button type="button" data-v="Sick">Sick day</button>
+          </div>
+        </fieldset>
+        <div class="meta" style="margin-top:10px">Entries before 12:00 noon count toward the previous evening's shift.</div>
+      </div>
+
+      <!-- DIET -->
+      <div class="card">
+        <div class="section-h"><h2>Diet · Calories in</h2><span class="tot num" id="inTot">0 kcal</span></div>
+        <div id="savedMealsBox" hidden><div class="sub-h" style="margin-top:0">Saved meals</div><div class="saved-meals" id="savedMeals"></div></div>
+        <fieldset id="fsDiet">
+          <div class="item first">
+            <div class="txt"><div class="t"><span class="time">17:30</span>Sprouts salad</div><div class="s">Moong / chana, onion, tomato, lemon · no oil</div></div>
+            <span class="kcal">200</span>
+            <div class="switch"><input type="checkbox" id="sprouts" aria-label="Sprouts salad"><span></span></div>
+          </div>
+          <div class="item">
+            <div class="txt"><div class="t">Veg & clear soup</div><div class="s">Drumstick, carrot, beetroot, broccoli · 95 kcal per bowl</div></div>
+            <div class="stepper"><button type="button" data-step="soup" data-d="-1" aria-label="Fewer bowls">−</button><output class="num" id="soup">0</output><button type="button" data-step="soup" data-d="1" aria-label="More bowls">+</button></div>
+          </div>
+          <div class="sub-h"><span class="time">01:00</span> Midnight protein</div>
+          <div class="item first">
+            <div class="txt"><div class="t">Whole boiled eggs</div><div class="s">75 kcal each</div></div>
+            <div class="stepper"><button type="button" data-step="wholeEggs" data-d="-1" aria-label="Fewer whole eggs">−</button><output class="num" id="wholeEggs">0</output><button type="button" data-step="wholeEggs" data-d="1" aria-label="More whole eggs">+</button></div>
+          </div>
+          <div class="item">
+            <div class="txt"><div class="t">Boiled egg whites</div><div class="s">17 kcal each</div></div>
+            <div class="stepper"><button type="button" data-step="eggWhites" data-d="-1" aria-label="Fewer egg whites">−</button><output class="num" id="eggWhites">0</output><button type="button" data-step="eggWhites" data-d="1" aria-label="More egg whites">+</button></div>
+          </div>
+          <div class="item">
+            <div class="txt"><div class="t">Chicken breast</div><div class="s">150 g cooked · 240 kcal per portion</div></div>
+            <div class="stepper"><button type="button" data-step="chicken" data-d="-1" aria-label="Fewer chicken portions">−</button><output class="num" id="chicken">0</output><button type="button" data-step="chicken" data-d="1" aria-label="More chicken portions">+</button></div>
+          </div>
+          <div class="item">
+            <div class="txt"><div class="t">Fish</div><div class="s">150 g cooked · 180 kcal per portion</div></div>
+            <div class="stepper"><button type="button" data-step="fish" data-d="-1" aria-label="Fewer fish portions">−</button><output class="num" id="fish">0</output><button type="button" data-step="fish" data-d="1" aria-label="More fish portions">+</button></div>
+          </div>
+          <div class="item">
+            <div class="txt"><div class="t">Paneer</div><div class="s">100 g · 260 kcal per portion</div></div>
+            <div class="stepper"><button type="button" data-step="paneer" data-d="-1" aria-label="Fewer paneer portions">−</button><output class="num" id="paneer">0</output><button type="button" data-step="paneer" data-d="1" aria-label="More paneer portions">+</button></div>
+          </div>
+          <div class="sub-h"><span class="time">09:00</span> Pre-sleep drink</div>
+          <div class="item first">
+            <div class="txt"><div class="t">Seeds drink</div><div class="s">Chia, flax, pumpkin, watermelon, sunflower · 1 fig · 1 date · 1 scoop whey · 5 g creatine</div></div>
+            <span class="kcal">450</span>
+            <div class="switch"><input type="checkbox" id="drink" aria-label="Pre-sleep seeds drink"><span></span></div>
+          </div>
+          <div class="sub-h">Controlled extras</div>
+          <div class="extra-grid">
+            <div class="field"><label for="exSel">Item</label>
+              <select class="inp" id="exSel">
+                <option value="none">None</option>
+                <option value="apple">Apple · 1 medium · 80</option>
+                <option value="papaya">Papaya · 1 cup (150 g) · 60</option>
+                <option value="guava">Guava · 1 medium · 40</option>
+                <option value="custom">Custom / other…</option>
+              </select>
+            </div>
+            <div class="field"><label for="exQty">Qty</label><input class="inp" id="exQty" type="number" inputmode="decimal" min="0.5" max="10" step="0.5" value="1"></div>
+            <button class="btn" type="button" id="exAdd" disabled>Add</button>
+          </div>
+          <div class="custom-grid" id="customRow" hidden>
+            <div class="field"><label for="exName">Label</label><input class="inp" id="exName" maxlength="40" placeholder="Dosa"></div>
+            <div class="field"><label for="exKcal">kcal each</label><input class="inp" id="exKcal" type="number" inputmode="numeric" min="0" max="3000" placeholder="150"></div>
+          </div>
+          <div class="extras" id="extras"></div>
+        </fieldset>
+      </div>
+
+      <!-- ACTIVITY -->
+      <div class="card">
+        <div class="section-h"><h2>Activity · Calories out</h2><span class="tot out num" id="outTot">0 kcal</span></div>
+        <fieldset id="fsActivity">
+          <div class="steps-wrap">
+            <svg class="ring" viewBox="0 0 84 84" aria-hidden="true">
+              <circle class="bg" cx="42" cy="42" r="36"/>
+              <circle class="fg" id="ringFg" cx="42" cy="42" r="36" stroke-dasharray="226.19" stroke-dashoffset="226.19" transform="rotate(-90 42 42)"/>
+              <text id="ringTxt" x="42" y="47" text-anchor="middle">0%</text>
+            </svg>
+            <div class="field" style="flex:1">
+              <label for="steps">Steps (target 10,000)</label>
+              <input class="inp" id="steps" type="number" inputmode="numeric" min="0" max="150000" placeholder="0">
+              <div class="meta num" id="stepBurn">0 kcal @ 110.0 kg</div>
+            </div>
+          </div>
+          <div class="grid2" style="margin-top:14px">
+            <div class="field"><label for="workout">Workout</label>
+              <select class="inp" id="workout">
+                <option value="None">No workout</option>
+                <option value="Light">Light walk / mobility · 30 min</option>
+                <option value="Moderate">Moderate strength · MET 5.0</option>
+                <option value="Intense">Intense / heavy · MET 6.0</option>
+              </select>
+            </div>
+            <div class="field"><label for="workoutMins">Duration (min)</label><input class="inp" id="workoutMins" type="number" inputmode="numeric" min="0" max="240" placeholder="0"></div>
+          </div>
+          <div id="workoutFlag" role="alert"></div>
+        </fieldset>
+        <div style="margin-top:12px">
+          <div class="burnrow"><span>BMR · 10 × kg + 892.75</span><b class="num" id="bBmr">0</b></div>
+          <div class="burnrow"><span>Steps</span><b class="num" id="bSteps">0</b></div>
+          <div class="burnrow"><span>Workout</span><b class="num" id="bWork">0</b></div>
+          <div class="burnrow total"><span>Total out</span><b class="num" id="bTotal">0</b></div>
+        </div>
+      </div>
+
+      <!-- BIOMETRICS -->
+      <div class="card">
+        <div class="section-h"><h2>Biometrics</h2><span class="meta" id="bmiTag"></span></div>
+        <fieldset id="fsBio">
+          <div class="grid2">
+            <div class="field"><label for="weight">Weight (kg)</label><input class="inp" id="weight" type="number" inputmode="decimal" step="0.1" min="30" max="300" placeholder="—"></div>
+            <div class="field"><label>BP (optional)</label>
+              <div style="display:flex;gap:6px;align-items:center"><input class="inp" id="sys" type="number" inputmode="numeric" min="50" max="260" placeholder="SYS" aria-label="Systolic"><span style="color:var(--muted)">/</span><input class="inp" id="dia" type="number" inputmode="numeric" min="30" max="180" placeholder="DIA" aria-label="Diastolic"></div>
+            </div>
+          </div>
+          <div id="bpFlag"></div>
+          <div class="sub-h">Water · target 3.5–4.0 L (creatine)</div>
+          <div class="water">
+            <div class="stepper"><button type="button" id="wMinus" aria-label="Less water">−</button><span class="o num" id="waterVal">0.0 L</span><button type="button" id="wPlus" aria-label="More water">+</button></div>
+            <div class="glasses" id="glasses" aria-hidden="true"></div>
+          </div>
+          <div class="field" style="margin-top:14px"><label for="notes">Shift notes · mood, strain, recovery</label><textarea class="inp" id="notes" maxlength="1000" placeholder="Heavy shift, knees fine, slept 6 h…"></textarea></div>
+        </fieldset>
+      </div>
+
+      <!-- SAVE -->
+      <div class="card savecard">
+        <div class="section-h"><h2>Save shift</h2></div>
+        <div id="saveBody">
+          <p class="meta" style="margin:0">Saving appends one row to your Google Sheet and locks this shift. It cannot be edited or deleted here afterwards.</p>
+          <div class="sum" id="saveSum"></div>
+          <button class="btn primary big" type="button" id="saveBtn">Save shift</button>
+          <div id="confirmBox" hidden>
+            <div class="flag warn">Lock this shift permanently? Corrections are only possible in the Google Sheet.</div>
+            <div class="confirm-row"><button class="btn" type="button" id="cancelSave">Back</button><button class="btn primary" type="button" id="confirmSave">Save & lock</button></div>
+          </div>
+          <div id="saveMsg" role="status"></div>
+        </div>
+        <div id="lockedBody" hidden>
+          <div class="flag ok" id="lockedMsg">Saved to Google Sheet. This shift is locked.</div>
+          <p class="meta" style="margin-bottom:0">Need a correction? Edit the row directly in your Google Sheet.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col">
+      <!-- BP estimate -->
+      <div class="card bpcard">
+        <div class="section-h"><h2>Blood pressure</h2><span class="meta">Measured vs estimated</span></div>
+        <div class="pair">
+          <div class="bpbox measured">
+            <span class="tag">Measured</span>
+            <div class="v num" id="bpLast">—</div>
+            <div class="meta" id="bpLastMeta">No reading logged yet</div>
+          </div>
+          <div class="bpbox est">
+            <span class="tag">Model estimate</span>
+            <div class="v num" id="bpEst">−0<small>mmHg</small></div>
+            <div class="meta" id="bpEstMeta">Systolic drop expected from weight lost</div>
+          </div>
+        </div>
+        <p class="meta" style="margin:10px 0 0">Estimate = max(0, 110 − current kg) × 1 mmHg, a population average from weight-loss studies. It is not a reading and does not unlock workouts; only measured values count.</p>
+      </div>
+
+      <div class="charts">
+        <div class="card wide">
+          <div class="section-h"><h2>Weight trend</h2><div class="legend"><span><i style="background:var(--emerald)"></i>Weight</span><span><i style="background:var(--cyan)"></i>Goal</span><span><i style="background:var(--faint)"></i>Projection</span></div></div>
+          <div class="chart-box tall"><canvas id="cWeight" aria-label="Weight progression chart"></canvas><div class="empty-chart" id="eWeight">Saved weights will draw the curve.</div></div>
+        </div>
+        <div class="card">
+          <div class="section-h"><h2>Calories · 14</h2><div class="legend"><span><i style="background:#2f8f73"></i>In</span><span><i style="background:var(--cyan)"></i>Out</span></div></div>
+          <div class="chart-box"><canvas id="cCal" aria-label="Calories in versus out"></canvas><div class="empty-chart" id="eCal">No saved shifts yet.</div></div>
+        </div>
+        <div class="card">
+          <div class="section-h"><h2>Steps · 14</h2><div class="legend"><span><i style="background:var(--cyan)"></i>Steps</span><span><i style="background:var(--emerald)"></i>10k</span></div></div>
+          <div class="chart-box"><canvas id="cSteps" aria-label="Daily steps"></canvas><div class="empty-chart" id="eSteps">No saved shifts yet.</div></div>
+        </div>
+        <div class="card wide">
+          <div class="section-h"><h2>BP readings · 30 days</h2><div class="legend"><span><i style="background:var(--danger)"></i>SYS</span><span><i style="background:var(--warn)"></i>DIA</span></div></div>
+          <div class="chart-box"><canvas id="cBp" aria-label="Blood pressure readings"></canvas><div class="empty-chart" id="eBp">Measured BP readings will appear here.</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-h"><h2>History</h2><span class="meta">Read-only</span></div>
+        <div class="tablewrap">
+          <table class="hist">
+            <thead><tr><th>Shift</th><th>Type</th><th>Weight</th><th>In</th><th>Out</th><th>Net</th><th>Steps</th><th>BP</th><th>Water</th></tr></thead>
+            <tbody id="histBody"><tr><td colspan="9" style="color:var(--faint)">No saved shifts yet.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-h"><h2>Export report</h2></div>
+        <div class="export">
+          <div class="field"><label for="pdfTheme">Style</label>
+            <select class="inp" id="pdfTheme" style="width:150px"><option value="light">Light (print)</option><option value="dark">Dark</option></select>
+          </div>
+          <button class="btn primary" type="button" id="pdfBtn">Export report (PDF)</button>
+        </div>
+        <p class="meta" id="pdfMsg" style="margin:8px 0 0">A4 report: weight curve, calorie balance, steps, BP and the last 14 shifts.</p>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+<script>
+(function(){
+'use strict';
+/* =====================================================================
+   CONSTANTS (spec §2–3)
+   ===================================================================== */
+const P = { age:32, heightCm:167.64, start:110, goal:80 };
+const KC = { sprouts:200, soup:95, wholeEgg:75, eggWhite:17, chicken:240, fish:180, paneer:260, drink:450 };
+const EXTRAS = { apple:{name:'Apple', unit:'1 medium', kcal:80}, papaya:{name:'Papaya', unit:'1 cup / 150 g', kcal:60}, guava:{name:'Guava', unit:'1 medium', kcal:40} };
+const MET = { None:0, Light:3.5, Moderate:5.0, Intense:6.0 };
+const DEF_MINS = { None:0, Light:30, Moderate:45, Intense:45 };
+const BP_LIMIT = 140;
+const RELOCK_MS = 2*60*1000;       // re-lock after 2 min in the background
+const POLL_MS = 60*1000;           // background sync while open
+
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const r0 = Math.round;
+const fmt = n => r0(n).toLocaleString();
+const numOrNull = v => { if(v===''||v==null) return null; const n=Number(v); return isFinite(n)?n:null; };
+const pad2 = n => String(n).padStart(2,'0');
+const iso = d => d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+const parse = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); };
+const addDays = (s,n) => { const x=parse(s); x.setDate(x.getDate()+n); return iso(x); };
+const daysBetween = (a,b) => Math.round((parse(b)-parse(a))/864e5);
+const fmtDate = (s,o) => parse(s).toLocaleDateString(undefined,o||{weekday:'short',day:'numeric',month:'short'});
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clean = (s,max) => String(s||'').replace(/[\u0000-\u0009\u000B-\u001F\u007F]/g,' ').replace(/<[^>]*>/g,'').replace(/[<>]/g,'').slice(0,max);
+// Shift-aware date: anything before 12:00 noon belongs to the previous evening's shift.
+const shiftDate = (now=new Date()) => { const d=new Date(now); if(d.getHours()<12) d.setDate(d.getDate()-1); return iso(d); };
+const today = () => shiftDate();
+const ls = {
+  get(k,f){ try{ const v=localStorage.getItem(k); return v==null?f:JSON.parse(v); }catch(e){ return f; } },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} },
+  del(k){ try{ localStorage.removeItem(k); }catch(e){} }
+};
+function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),2800); }
+const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const fromB64u = s => { s=s.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4) s+='='; return Uint8Array.from(atob(s),c=>c.charCodeAt(0)); };
+const rand = n => crypto.getRandomValues(new Uint8Array(n));
+
+/* =====================================================================
+   APP LOCK — PIN (PBKDF2 hash) + optional WebAuthn platform biometric.
+   Client-side gate: it stops someone using this unlocked phone. The real
+   protection for your data is the API token checked by Apps Script.
+   ===================================================================== */
+const Lock = (() => {
+  let mode = 'unlock';              // 'setup' | 'confirm' | 'unlock' | 'offer' | 'change'
+  let entry = '', firstPin = '', unlocked = false, hiddenAt = 0, onUnlock = null;
+  const cfg = () => ls.get('rt80_lock', null);
+  const pinLen = () => (cfg()?.len) || 6;
+
+  async function hashPin(pin, salt, iter){
+    const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
+    const bits = await crypto.subtle.deriveBits({name:'PBKDF2', hash:'SHA-256', salt, iterations:iter}, key, 256);
+    return b64u(bits);
+  }
+  async function bioAvailable(){
+    try{ return !!(window.PublicKeyCredential && await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()); }catch(e){ return false; }
+  }
+  async function bioRegister(){
+    const cred = await navigator.credentials.create({ publicKey:{
+      challenge: rand(32), rp:{ name:'Road to 80' },
+      user:{ id: rand(16), name:'road-to-80', displayName:'Road to 80' },
+      pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],
+      authenticatorSelection:{ authenticatorAttachment:'platform', userVerification:'required', residentKey:'discouraged' },
+      timeout:60000, attestation:'none' }});
+    const c = cfg(); c.credId = b64u(cred.rawId); ls.set('rt80_lock', c);
+  }
+  async function bioVerify(){
+    const c = cfg(); if(!c?.credId) return false;
+    const a = await navigator.credentials.get({ publicKey:{
+      challenge: rand(32), allowCredentials:[{ type:'public-key', id: fromB64u(c.credId), transports:['internal','hybrid'] }],
+      userVerification:'required', timeout:60000 }});
+    if(!a) return false;
+    const flags = new Uint8Array(a.response.authenticatorData)[32];
+    return (flags & 0x04) !== 0;      // UV flag: fingerprint / screen lock was actually verified
+  }
+
+  function renderDots(){ const d=$('dots'); d.textContent=''; const n = (mode==='unlock') ? pinLen() : Math.max(4, entry.length<6?Math.max(entry.length,4):6);
+    for(let i=0;i<n;i++){ const s=document.createElement('i'); if(i<entry.length) s.className='on'; d.appendChild(s); } }
+  function msg(t, ok){ const m=$('lockMsg'); m.textContent=t||''; m.className='lock-msg'+(ok?' ok':''); }
+  function buzz(){ const d=$('dots'); d.classList.remove('shake'); void d.offsetWidth; d.classList.add('shake'); try{ navigator.vibrate&&navigator.vibrate(80);}catch(e){} }
+  function buildPad(){
+    const pad=$('pad'); pad.textContent='';
+    ['1','2','3','4','5','6','7','8','9','del','0','ok'].forEach(k=>{
+      const b=document.createElement('button'); b.type='button';
+      if(k==='del'){ b.className='fn'; b.textContent='Delete'; b.setAttribute('aria-label','Delete digit'); }
+      else if(k==='ok'){ b.className='fn'; b.textContent='OK'; b.id='padOk'; }
+      else b.textContent=k;
+      b.onclick=()=>press(k); pad.appendChild(b);
+    });
+  }
+  function press(k){
+    if(!$('lock').hidden && $('pad').hidden) return;
+    if(k==='del'){ entry=entry.slice(0,-1); renderDots(); return; }
+    if(k==='ok'){ submit(); return; }
+    if(entry.length>=6) return;
+    entry+=k; renderDots();
+    if(mode==='unlock' && entry.length===pinLen()) submit();
+  }
+  async function submit(){
+    if(mode==='setup' || mode==='change'){
+      if(entry.length<4){ msg('Use 4 to 6 digits'); buzz(); return; }
+      firstPin=entry; entry=''; mode='confirm'; $('lockHint').textContent='Enter the same PIN again'; msg(''); renderDots(); return;
+    }
+    if(mode==='confirm'){
+      if(entry!==firstPin){ entry=''; firstPin=''; mode=cfg()?'change':'setup'; $('lockHint').textContent='PINs did not match. Choose a PIN (4–6 digits)'; buzz(); renderDots(); return; }
+      const salt=rand(16), iter=150000, prev=cfg()||{};
+      ls.set('rt80_lock', { hash: await hashPin(entry, salt, iter), salt:b64u(salt), iter, len:entry.length, credId:prev.credId||null });
+      entry=''; firstPin='';
+      if(!prev.credId && await bioAvailable()){ showOffer(); } else { toast('PIN saved'); done(); }
+      return;
+    }
+    if(mode==='unlock'){
+      const f=ls.get('rt80_lock_fail',{n:0,until:0});
+      if(Date.now()<f.until){ msg('Too many attempts. Try again in '+Math.ceil((f.until-Date.now())/1000)+' s'); entry=''; renderDots(); return; }
+      const c=cfg(); const ok = (await hashPin(entry, fromB64u(c.salt), c.iter)) === c.hash;
+      entry='';
+      if(ok){ ls.del('rt80_lock_fail'); done(); }
+      else { f.n++; if(f.n>=5){ f.until=Date.now()+30000*Math.pow(2,Math.min(f.n-5,5)); } ls.set('rt80_lock_fail',f); msg('Wrong PIN'+(f.n>=3?' · '+Math.max(0,5-f.n)+' tries before a pause':'')); buzz(); renderDots(); $('forgotBtn').hidden=false; }
+    }
+  }
+  function showOffer(){ mode='offer'; $('pad').hidden=true; $('dots').hidden=true; $('bioBtn').hidden=true; $('bioOffer').hidden=false;
+    $('lockHint').textContent='PIN saved. Unlock with your fingerprint next time?'; msg(''); }
+  async function tryBio(){
+    try{ msg(''); if(await bioVerify()){ ls.del('rt80_lock_fail'); done(); } else msg('Fingerprint not verified. Use your PIN.'); }
+    catch(e){ msg(e && e.name==='NotAllowedError' ? 'Fingerprint cancelled. Tap the icon or use your PIN.' : 'Fingerprint unavailable here. Use your PIN.'); }
+  }
+  function done(){
+    unlocked=true; mode='unlock'; $('lock').hidden=true; $('app').hidden=false;
+    const cb=onUnlock; onUnlock=null; cb&&cb();
+  }
+  async function show(m){
+    mode=m; entry=''; firstPin=''; unlocked=false;
+    $('lock').hidden=false; $('pad').hidden=false; $('dots').hidden=false; $('bioOffer').hidden=true; $('resetBox').hidden=true; $('forgotBtn').hidden=true;
+    $('app').hidden = true;
+    $('changeCancel').hidden = (m!=='change');
+    const c=cfg(), bio=!!(c&&c.credId) && m==='unlock' && await bioAvailable();
+    $('bioBtn').hidden=!bio;
+    $('lockHint').textContent = m==='setup' ? 'Choose a PIN (4–6 digits) to protect this app on this device' : m==='change' ? 'Choose a new PIN (4–6 digits)' : 'Enter your PIN'+(bio?' or use your fingerprint':'');
+    $('padOk') && ($('padOk').style.visibility = m==='unlock' ? 'hidden':'visible');
+    msg(''); renderDots();
+    if(bio) setTimeout(tryBio, 250);   // prompt fingerprint straight away on launch
+  }
+  function init(cb){
+    buildPad(); onUnlock=cb;
+    $('bioBtn').onclick=tryBio;
+    $('bioEnable').onclick=async()=>{ try{ await bioRegister(); toast('Fingerprint unlock is on'); }catch(e){ toast('Fingerprint setup cancelled. PIN only.'); } done(); };
+    $('bioSkip').onclick=()=>done();
+    $('changeCancel').onclick=()=>{ entry=''; firstPin=''; done(); };
+    $('forgotBtn').onclick=()=>{ $('resetBox').hidden=false; $('forgotBtn').hidden=true; };
+    $('resetCancel').onclick=()=>{ $('resetBox').hidden=true; };
+    $('resetConfirm').onclick=()=>{ try{ Object.keys(localStorage).filter(k=>k.startsWith('rt80_')).forEach(k=>localStorage.removeItem(k)); }catch(e){} location.reload(); };
+    document.addEventListener('keydown',e=>{ if($('lock').hidden) return; if(/^[0-9]$/.test(e.key)) press(e.key); else if(e.key==='Backspace') press('del'); else if(e.key==='Enter') press('ok'); });
+    document.addEventListener('visibilitychange',()=>{
+      if(document.hidden){ hiddenAt=Date.now(); }
+      else if(unlocked && hiddenAt && Date.now()-hiddenAt>RELOCK_MS){ lockNow(); }
+    });
+    show(cfg() ? 'unlock' : 'setup');
+  }
+  function lockNow(){ onUnlock = ()=>{ document.dispatchEvent(new Event('rt80:unlocked')); }; show('unlock'); }
+  return { init, lockNow, isUnlocked:()=>unlocked, bioAvailable, bioRegister,
+    hasBio:()=>!!cfg()?.credId,
+    removeBio(){ const c=cfg(); if(c){ c.credId=null; ls.set('rt80_lock',c); } },
+    changePin(cb){ onUnlock=cb||(()=>{}); show('change'); } };
+})();
+
+/* =====================================================================
+   API — POST text/plain {token, action, ...} to the Apps Script /exec URL
+   (no custom headers → no CORS preflight; token never appears in a URL)
+   ===================================================================== */
+let conn = ls.get('rt80_conn', {url:'', token:''});
+class NetError extends Error {}
+async function api(action, extra){
+  if(!conn.url || !conn.token) throw new Error('not_connected');
+  let res;
+  try{ res = await fetch(conn.url, { method:'POST', redirect:'follow', cache:'no-store', body: JSON.stringify(Object.assign({ token:conn.token, action }, extra||{})) }); }
+  catch(e){ throw new NetError('offline'); }
+  let j; try{ j = await res.json(); }catch(e){ throw new NetError('Unexpected response (check the web-app URL and that access is "Anyone")'); }
+  if(j.status==='error' && j.code==='unauthorized') throw new Error('Wrong API token');
+  return j;
+}
+
+/* =====================================================================
+   STATE
+   ===================================================================== */
+let server = {};                              // Shift_Date → saved row (from the Sheet)
+let outbox = ls.get('rt80_outbox', {});       // Shift_Date → payload saved offline, waiting to upload
+let loaded = false, syncing = false;
+let curDate = today();
+let cur = draftFor(curDate);
+
+function blank(date){ return {date, dayType:'Shift', sprouts:false, soup:0, wholeEggs:0, eggWhites:0, chicken:0, fish:0, paneer:0, drink:false, extras:[],
+  steps:null, workout:'None', workoutMins:null, weight:null, sys:null, dia:null, water:0, notes:''}; }
+function draftFor(date){
+  const d = Object.assign(blank(date), ls.get('rt80_draft_'+date, {}), {date});
+  ['chicken','fish','paneer'].forEach(k=>{ if(d[k]===true) d[k]=1; if(d[k]===false) d[k]=0; });  // older drafts used toggles
+  return d;
+}
+function saveDraft(){ if(!isLocked(curDate)) ls.set('rt80_draft_'+curDate, cur); }
+function pruneDrafts(){ try{ const cut=addDays(today(),-21); Object.keys(localStorage).forEach(k=>{ if(k.startsWith('rt80_draft_') && k.slice(11)<cut) localStorage.removeItem(k); }); }catch(e){} }
+
+function normalizeRow(r){
+  const n = v => (v===''||v==null)?null:Number(v);
+  return { date:String(r.Shift_Date).slice(0,10), ts:r.Timestamp, weight:n(r.Weight), sys:n(r.Systolic_BP), dia:n(r.Diastolic_BP),
+    water:n(r.Water_Liters)||0, steps:n(r.Steps), workout:r.Workout_Type||'None', workoutMins:n(r.Workout_Mins)||0,
+    in:n(r.Calories_In)||0, out:n(r.Calories_Out)||0, net:n(r.Net_Deficit)||0,
+    meals:String(r.Meals_Summary||''), notes:String(r.Notes||''), dayType:r.Day_Type||'Shift' };
+}
+function payloadToRow(p){ return normalizeRow({ Shift_Date:p.shiftDate, Timestamp:p.clientTime, Weight:p.weight, Systolic_BP:p.systolic, Diastolic_BP:p.diastolic,
+  Water_Liters:p.water, Steps:p.steps, Workout_Type:p.workoutType, Workout_Mins:p.workoutMins, Calories_In:p.caloriesIn, Calories_Out:p.caloriesOut,
+  Net_Deficit:p.netDeficit, Meals_Summary:p.mealsSummary, Notes:p.notes, Day_Type:p.dayType }); }
+// Everything the dashboard shows = rows in the Sheet + rows waiting in the offline outbox.
+function allLogs(){ const m=Object.assign({}, server); Object.keys(outbox).forEach(d=>{ if(!m[d]) m[d]=Object.assign(payloadToRow(outbox[d]),{pending:true}); }); return m; }
+const isLocked = d => !!server[d] || !!outbox[d];
+
+/* =====================================================================
+   CALCULATIONS (spec §3)
+   ===================================================================== */
+function calIn(l){
+  let k=0; if(l.sprouts)k+=KC.sprouts; k+=(l.soup||0)*KC.soup;
+  k+=(l.wholeEggs||0)*KC.wholeEgg+(l.eggWhites||0)*KC.eggWhite;
+  k+=(l.chicken||0)*KC.chicken+(l.fish||0)*KC.fish+(l.paneer||0)*KC.paneer;
+  if(l.drink)k+=KC.drink;
+  (l.extras||[]).forEach(e=>k+=(Number(e.kcal)||0)*(Number(e.qty)||1)); return k;
+}
+function latest(field, before){ const m=allLogs(); const ds=Object.keys(m).filter(d=>(!before||d<before) && m[d][field]!=null).sort(); return ds.length? {v:m[ds[ds.length-1]][field], d:ds[ds.length-1]} : null; }
+function calcWeight(l){ if(l.weight!=null) return l.weight; const w=latest('weight', l.date)||latest('weight'); return w?w.v:P.start; }
+const bmr = w => 10*w + 892.75;              // Mifflin-St Jeor for 32 y, 167.64 cm, male
+function minsFor(l){ if(l.workout==='Light') return 30; if(l.workout==='None') return 0; return l.workoutMins!=null?l.workoutMins:DEF_MINS[l.workout]; }
+function calc(l){
+  const w=calcWeight(l), b=bmr(w), s=(l.steps||0)*(w*0.0005), mins=minsFor(l);
+  const wk = l.workout==='Light' ? 3.5*w*0.5 : (MET[l.workout]||0)*w*(mins/60);
+  const inn=calIn(l), out=b+s+wk;
+  return {w, bmr:b, steps:s, work:wk, mins, in:inn, out, net:inn-out};
+}
+// Safety reference: this shift's systolic if entered, else the last measured reading.
+function refSys(){ if(!isLocked(curDate) && cur.sys!=null) return {v:cur.sys, d:curDate, now:true}; return latest('sys'); }
+function currentWeight(){ if(!isLocked(curDate) && cur.weight!=null) return cur.weight; const w=latest('weight'); return w?w.v:P.start; }
+function mealsSummary(l){
+  const p=[]; if(l.sprouts)p.push('Sprouts salad ('+KC.sprouts+')'); if(l.soup)p.push('Veg soup x'+l.soup+' ('+l.soup*KC.soup+')');
+  if(l.wholeEggs)p.push('Whole eggs x'+l.wholeEggs+' ('+l.wholeEggs*KC.wholeEgg+')'); if(l.eggWhites)p.push('Egg whites x'+l.eggWhites+' ('+l.eggWhites*KC.eggWhite+')');
+  if(l.chicken)p.push('Chicken 150g x'+l.chicken+' ('+l.chicken*KC.chicken+')'); if(l.fish)p.push('Fish 150g x'+l.fish+' ('+l.fish*KC.fish+')'); if(l.paneer)p.push('Paneer 100g x'+l.paneer+' ('+l.paneer*KC.paneer+')');
+  if(l.drink)p.push('Seeds drink ('+KC.drink+')');
+  (l.extras||[]).forEach(e=>p.push(e.name+' x'+e.qty+' ('+r0(e.kcal*e.qty)+')'));
+  return p.join('; ');
+}
+
+/* =====================================================================
+   RENDER — form
+   ===================================================================== */
+function viewModel(){
+  if(!isLocked(curDate)) return cur;
+  const r=allLogs()[curDate], d=ls.get('rt80_draft_'+curDate,null);
+  return Object.assign(blank(curDate), d||{}, {date:curDate, dayType:r.dayType, weight:r.weight, sys:r.sys, dia:r.dia, water:r.water, steps:r.steps, workout:r.workout, workoutMins:r.workoutMins, notes:r.notes});
+}
+const STEP_KEYS=['soup','wholeEggs','eggWhites','chicken','fish','paneer'];
+function loadForm(){
+  const v=viewModel(), locked=isLocked(curDate);
+  $('sprouts').checked=!!v.sprouts; $('drink').checked=!!v.drink;
+  STEP_KEYS.forEach(k=>$(k).textContent=v[k]||0);
+  $('steps').value=v.steps??''; $('workout').value=v.workout||'None'; $('workoutMins').value=v.workout==='Light'?30:(v.workoutMins??'');
+  $('weight').value=v.weight??''; $('sys').value=v.sys??''; $('dia').value=v.dia??''; $('notes').value=v.notes||'';
+  ['fsDay','fsDiet','fsActivity','fsBio'].forEach(id=>$(id).disabled=locked);
+  const hasDraft = !!ls.get('rt80_draft_'+curDate,null);
+  $('fsDiet').hidden = locked && !hasDraft;
+  $('savedMealsBox').hidden = !locked;
+  if(locked) $('savedMeals').textContent = allLogs()[curDate].meals || 'No meals recorded.';
+  renderShiftHeader(); renderExtras(v); renderLive();
+}
+function renderShiftHeader(){
+  const t=today(), locked=isLocked(curDate), pending=!!outbox[curDate] && !server[curDate];
+  $('shiftLabel').textContent = fmtDate(curDate,{weekday:'long',day:'numeric',month:'short'});
+  $('shiftEyebrow').textContent = curDate===t ? 'Current shift' : 'Previous shift';
+  const b=$('shiftBadge'); b.textContent = pending?'Waiting to sync':locked?'Saved · locked':'Draft'; b.className='badge '+(pending?'pending':locked?'locked':'draft');
+  document.querySelectorAll('#daySeg button').forEach(x=>x.setAttribute('aria-pressed', String(x.dataset.v===(viewModel().dayType||'Shift'))));
+  const prev=addDays(t,-1), seg=$('shiftSeg'); seg.textContent='';
+  if(loaded && !isLocked(prev)){
+    seg.hidden=false;
+    [[t,'Current · '+fmtDate(t,{day:'numeric',month:'short'})],[prev,'Unsaved · '+fmtDate(prev,{day:'numeric',month:'short'})]].forEach(([d,l])=>{
+      const btn=document.createElement('button'); btn.type='button'; btn.textContent=l; btn.setAttribute('aria-pressed',String(d===curDate)); btn.onclick=()=>switchShift(d); seg.appendChild(btn); });
+  } else seg.hidden=true;
+  $('saveBody').hidden=locked; $('lockedBody').hidden=!locked;
+  if(locked){ const r=allLogs()[curDate];
+    $('lockedMsg').className='flag '+(pending?'info':'ok');
+    $('lockedMsg').textContent = pending ? 'Saved on this device. It uploads to your Google Sheet as soon as you are back online.' :
+      'Saved to Google Sheet'+(r.ts?' on '+new Date(r.ts).toLocaleString(undefined,{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'')+'. This shift is locked.'; }
+}
+function switchShift(d){ if(d===curDate) return; saveDraft(); curDate=d; cur=draftFor(d); closeConfirm(); loadForm(); }
+function renderExtras(v){
+  const box=$('extras'); box.textContent=''; const locked=isLocked(curDate);
+  (v.extras||[]).forEach((e,i)=>{
+    const row=document.createElement('div'); row.className='extra';
+    const s=document.createElement('span'); s.textContent=e.name+' × '+e.qty; row.appendChild(s);
+    const k=document.createElement('b'); k.className='kcal'; k.textContent=r0(e.kcal*e.qty)+' kcal'; row.appendChild(k);
+    if(!locked){ const x=document.createElement('button'); x.className='x'; x.type='button'; x.textContent='×'; x.setAttribute('aria-label','Remove '+e.name);
+      x.onclick=()=>{ cur.extras.splice(i,1); renderExtras(cur); changed(); }; row.appendChild(x); }
+    box.appendChild(row);
+  });
+}
+function renderLive(){
+  const locked=isLocked(curDate), v=viewModel(), c=calc(v), r=locked?allLogs()[curDate]:null;
+  const cin=r?r.in:c.in, cout=r?r.out:c.out, net=r?r.net:c.net;
+  $('inTot').textContent=fmt(cin)+' kcal'; $('outTot').textContent=fmt(cout)+' kcal';
+  $('bBmr').textContent=fmt(c.bmr); $('bSteps').textContent=fmt(c.steps); $('bWork').textContent=fmt(c.work); $('bTotal').textContent=fmt(cout)+' kcal';
+  const st=v.steps||0; $('ringFg').setAttribute('stroke-dashoffset',(226.19*(1-Math.min(1,st/10000))).toFixed(2)); $('ringTxt').textContent=Math.round(st/100)+'%';
+  $('stepBurn').textContent=fmt(c.steps)+' kcal @ '+c.w.toFixed(1)+' kg';
+  $('workoutMins').disabled = locked || v.workout==='Light' || v.workout==='None';
+
+  // Safety lockout: systolic > 140 (this entry, or last measured reading) → light walking only.
+  const rs=refSys(), bpLock = rs && rs.v>BP_LIMIT;
+  ['Moderate','Intense'].forEach(k=>{ const o=$('workout').querySelector('option[value='+k+']'); o.disabled=!!bpLock;
+    o.textContent=(k==='Moderate'?'Moderate strength · MET 5.0':'Intense / heavy · MET 6.0')+(bpLock?' · locked (BP)':''); });
+  let wf='';
+  if(bpLock) wf='<div class="flag danger">Light walking only: '+(rs.now?'this shift\'s':'your last measured')+' systolic is '+rs.v+' mmHg'+(rs.now?'':' ('+fmtDate(rs.d,{day:'numeric',month:'short'})+')')+', above '+BP_LIMIT+'. Strength work spikes blood pressure. A new reading at or below '+BP_LIMIT+' lifts the lock.</div>';
+  else if(v.workout==='Intense') wf='<div class="flag warn">Heavy lifting raises blood pressure sharply. Keep breathing through each rep, avoid straining to failure, and stop if you feel dizzy or get a headache.</div>';
+  else if(!rs) wf='<div class="flag info">No BP reading on record yet. Log one before starting strength work.</div>';
+  $('workoutFlag').innerHTML=wf;
+
+  $('sys').classList.toggle('bad', v.sys!=null && v.sys>BP_LIMIT); $('dia').classList.toggle('bad', v.dia!=null && v.dia>90);
+  let bf='';
+  if(v.sys!=null && v.sys>BP_LIMIT) bf='<div class="flag danger">Systolic '+v.sys+' is above '+BP_LIMIT+'. Re-check after 5 minutes seated and note both readings.</div>';
+  else if(v.sys!=null && v.sys>=130) bf='<div class="flag warn">Elevated ('+v.sys+'). The trend matters more than one reading.</div>';
+  else if(v.sys!=null) bf='<div class="flag ok">Systolic '+v.sys+' is in range.</div>';
+  else if(!locked){ const l=latest('sys'); bf='<div class="meta" style="margin-top:6px">Optional. Left blank, the safety check uses '+(l?'your last reading ('+l.v+', '+fmtDate(l.d,{day:'numeric',month:'short'})+')':'no reading yet')+'.</div>'; }
+  $('bpFlag').innerHTML=bf;
+  const h=P.heightCm/100; $('bmiTag').textContent='BMI '+(c.w/(h*h)).toFixed(1);
+  $('waterVal').textContent=(v.water||0).toFixed(1)+' L';
+  const g=$('glasses'); g.textContent=''; for(let i=1;i<=8;i++){ const s=document.createElement('span'); if((v.water||0)>=i*0.5) s.className='on'; if(i===7) s.classList.add('tgt'); g.appendChild(s); }
+
+  $('pIn').textContent='In '+fmt(cin); $('pOut').textContent='Out '+fmt(cout);
+  const el=$('pNet'); el.textContent=(net>0?'+':net<0?'−':'')+fmt(Math.abs(net))+' kcal'; el.className='net num '+(cin===0?'':(net<0?'good':'bad'));
+  $('pNetMeta').textContent=(cin===0&&!locked?'No food logged yet · ':'')+(net<0?'Deficit':'Surplus')+' · '+fmtDate(curDate,{day:'numeric',month:'short'})+(locked?' · saved':'');
+
+  const pairs=[['In',fmt(c.in)+' kcal'],['Out',fmt(c.out)+' kcal'],['Net',(c.net>0?'+':'')+fmt(c.net)+' kcal'],['Day',v.dayType],['Weight',v.weight!=null?v.weight.toFixed(1)+' kg':'not entered'],['BP',v.sys!=null?v.sys+'/'+(v.dia??'–'):'skipped'],['Water',(v.water||0).toFixed(1)+' L'],['Steps',v.steps!=null?fmt(v.steps):'0']];
+  $('saveSum').innerHTML=pairs.map(([k,x])=>'<div>'+esc(k)+' <b>'+esc(x)+'</b></div>').join('');
+  $('saveBtn').disabled=!loaded && !Object.keys(server).length && !conn.url;
+}
+
+/* =====================================================================
+   RENDER — summary, BP card, history, charts
+   ===================================================================== */
+function renderSummary(){
+  const t=today(), m=allLogs(), ds=Object.keys(m).sort();
+  let s=0, d=t; if(!m[d]) d=addDays(d,-1); while(m[d]){ s++; d=addDays(d,-1); }
+  $('streak').innerHTML=s+'<small>'+(s===1?'day':'days')+'</small>';
+  const f=$('flames'); f.textContent=''; let c7=0;
+  for(let i=6;i>=0;i--){ const x=m[addDays(t,-i)], sp=document.createElement('span'); if(x){ sp.className=x.dayType==='Shift'?'on':'rest'; c7++; } f.appendChild(sp); }
+  $('streakMeta').textContent='Last 7 shifts · '+c7+'/7 saved';
+
+  const lw=currentWeight(), toGo=Math.max(0,lw-P.goal), pr=projection();
+  const cd=$('cdDays');
+  if(toGo<=0){ cd.textContent='0'; cd.className='bignum num'; $('cdUnit').textContent='days · goal reached'; $('cdSub').innerHTML='You are at <b>'+lw.toFixed(1)+' kg</b>.'; }
+  else if(pr.days!=null){
+    cd.textContent=pr.days.toLocaleString(); cd.className='bignum num'; $('cdUnit').textContent='days';
+    $('cdSub').innerHTML='<b>'+toGo.toFixed(1)+' kg</b> to go at an average <b>'+fmt(pr.avg)+' kcal/day</b> deficit ('+pr.n+' saved shift'+(pr.n===1?'':'s')+') · ETA <b>'+parse(pr.eta).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'})+'</b>';
+  } else { cd.textContent='—'; cd.className='bignum num dim'; $('cdUnit').textContent='days';
+    $('cdSub').innerHTML='<b>'+toGo.toFixed(1)+' kg</b> to go. '+(pr.avg==null?'Save a few shifts with meals to start the projection.':'Your 7-day average is a surplus, so there is no projection yet.'); }
+  const lost=Math.max(0,P.start-lw); $('progBar').style.width=Math.min(100,lost/(P.start-P.goal)*100).toFixed(1)+'%';
+  $('progNow').textContent=lost.toFixed(1)+' kg lost · '+lw.toFixed(1)+' now';
+
+  // BP card: measured vs estimated
+  const lb=latest('sys');
+  if(lb){ const row=m[lb.d]; $('bpLast').innerHTML=lb.v+'<small>/'+(row.dia??'–')+'</small>'; $('bpLast').style.color=lb.v>BP_LIMIT?'var(--danger)':'';
+    $('bpLastMeta').textContent='Logged '+fmtDate(lb.d,{day:'numeric',month:'short'})+(lb.v>BP_LIMIT?' · above 140':''); }
+  else { $('bpLast').textContent='—'; $('bpLast').style.color=''; $('bpLastMeta').textContent='No reading logged yet'; }
+  const drop=Math.max(0,(P.start-lw)*1.0);
+  $('bpEst').innerHTML='−'+drop.toFixed(1)+'<small>mmHg</small>';
+  $('bpEstMeta').textContent='From '+lost.toFixed(1)+' kg lost (110 → '+lw.toFixed(1)+' kg)';
+
+  const tb=$('histBody'); tb.textContent='';
+  const recent=ds.slice().reverse().slice(0,14);
+  if(!recent.length) tb.innerHTML='<tr><td colspan="9" style="color:var(--faint)">No saved shifts yet.</td></tr>';
+  recent.forEach(dd=>{ const r=m[dd], tr=document.createElement('tr');
+    [[fmtDate(dd)+(r.pending?' ⟳':''), r.pending?'pend':''],[r.dayType, r.dayType!=='Shift'?'rest':''],[r.weight!=null?r.weight.toFixed(1):'·'],[fmt(r.in)],[fmt(r.out)],[(r.net>0?'+':'')+fmt(r.net), r.net<0?'pos':'neg'],[r.steps!=null?fmt(r.steps):'·'],[r.sys!=null?r.sys+'/'+(r.dia??'–'):'·', r.sys>BP_LIMIT?'hi':''],[r.water.toFixed(1)]]
+      .forEach(([x,cl])=>{ const td=document.createElement('td'); td.textContent=x; if(cl) td.className=cl; tr.appendChild(td); });
+    tb.appendChild(tr); });
+  drawCharts();
+}
+function projection(){
+  const t=today(), m=allLogs(), win=[];
+  for(let i=0;i<7;i++){ const r=m[addDays(t,-i)]; if(r && r.in>0) win.push(-r.net); }
+  const avg=win.length? win.reduce((a,b)=>a+b,0)/win.length : null;
+  const lw=currentWeight(), toGo=lw-P.goal;
+  if(avg==null || avg<=0 || toGo<=0) return {avg, n:win.length, days:null};
+  const days=Math.ceil(toGo*7700/avg); return {avg, n:win.length, days, eta:addDays(t,days)};
+}
+
+/* ---------- chart configs (shared by dashboard + PDF) ---------- */
+const THEMES = {
+  dash:{ text:'#8b9ca3', grid:'rgba(139,156,163,.12)', weight:'#34d399', weightFill:'rgba(52,211,153,.12)', goal:'#22d3ee', proj:'#5f7079', start:'rgba(139,156,163,.35)', inBar:'#2f8f73', outBar:'#22d3ee', steps:'#22d3ee', stepsHit:'#34d399', sys:'#f26d6d', dia:'#f2b64c', limit:'rgba(242,109,109,.45)', font:11 },
+  light:{ text:'#4b5a61', grid:'rgba(20,28,32,.08)', weight:'#0f9d74', weightFill:'rgba(15,157,116,.10)', goal:'#0891b2', proj:'#9aa7ad', start:'rgba(20,28,32,.25)', inBar:'#7cc7ae', outBar:'#0891b2', steps:'#0891b2', stepsHit:'#0f9d74', sys:'#d14343', dia:'#c98a12', limit:'rgba(209,67,67,.45)', font:22 },
+  dark:{ text:'#8b9ca3', grid:'rgba(139,156,163,.14)', weight:'#34d399', weightFill:'rgba(52,211,153,.14)', goal:'#22d3ee', proj:'#6b7c84', start:'rgba(139,156,163,.35)', inBar:'#2f8f73', outBar:'#22d3ee', steps:'#22d3ee', stepsHit:'#34d399', sys:'#f26d6d', dia:'#f2b64c', limit:'rgba(242,109,109,.45)', font:22 }
+};
+const lbl = d => fmtDate(d,{day:'numeric',month:'short'});
+function baseOpts(th, scales, print){
+  return { responsive:!print, maintainAspectRatio:false, animation:print?false:{duration:300}, devicePixelRatio:print?1:undefined,
+    interaction:{mode:'index',intersect:false},
+    plugins:{ legend:{display:false}, tooltip:{enabled:!print, backgroundColor:'#1c252a',borderColor:'#34434b',borderWidth:1,titleColor:'#e3ecee',bodyColor:'#e3ecee'} },
+    scales, color:th.text, font:{size:th.font} };
+}
+function axis(th, extra){ return Object.assign({ grid:{color:th.grid}, ticks:{color:th.text, font:{size:th.font, family:'"IBM Plex Mono",monospace'}} }, extra||{}); }
+function weightCfg(th, print){
+  const m=allLogs(), wd=Object.keys(m).filter(d=>m[d].weight!=null).sort();
+  if(!wd.length) return null;
+  const pr=projection(), first=wd[0], last=wd[wd.length-1];
+  const end = pr.eta && daysBetween(last,pr.eta)<=400 ? pr.eta : last;
+  const labels=[]; for(let d=first; d<=end; d=addDays(d,1)) labels.push(d);
+  const actual=labels.map(d=>m[d]&&m[d].weight!=null?m[d].weight:null);
+  const proj=labels.map(d=> d===last?m[last].weight : (pr.eta&&d===pr.eta?P.goal:null));
+  return { type:'line', data:{ labels:labels.map(lbl), datasets:[
+    { label:'Weight', data:actual, borderColor:th.weight, backgroundColor:th.weightFill, fill:'origin', tension:.25, spanGaps:true, borderWidth:print?4:2,
+      pointRadius:actual.map((v,i)=>v==null?0:(labels[i]===last?(print?8:5):(print?3:2))), pointBackgroundColor:th.weight },
+    { label:'Projection', data:proj, borderColor:th.proj, borderDash:print?[14,10]:[6,5], spanGaps:true, pointRadius:0, borderWidth:print?3:1.5, fill:false },
+    { label:'Goal 80 kg', data:labels.map(()=>P.goal), borderColor:th.goal, borderDash:print?[10,8]:[4,4], pointRadius:0, borderWidth:print?3:1.5, fill:false },
+    { label:'Start 110 kg', data:labels.map(()=>P.start), borderColor:th.start, pointRadius:0, borderWidth:print?2:1, fill:false }
+  ]}, options: baseOpts(th, { y:axis(th,{min:P.goal-3, max:P.start+2, ticks:{color:th.text,font:{size:th.font},callback:v=>v+' kg'}}), x:axis(th,{grid:{display:false}, ticks:{color:th.text,font:{size:th.font},maxRotation:0,autoSkip:true,maxTicksLimit:print?8:7}}) }, print) };
+}
+function calCfg(th, print){
+  const m=allLogs(), ds=Object.keys(m).sort().slice(-14); if(!ds.length) return null;
+  return { type:'bar', data:{ labels:ds.map(lbl), datasets:[
+    { label:'In', data:ds.map(d=>r0(m[d].in)), backgroundColor:th.inBar, borderRadius:print?6:3 },
+    { label:'Out', data:ds.map(d=>r0(m[d].out)), backgroundColor:th.outBar, borderRadius:print?6:3 } ]},
+    options: baseOpts(th, { y:axis(th,{beginAtZero:true}), x:axis(th,{grid:{display:false},ticks:{color:th.text,font:{size:th.font},maxRotation:0,autoSkip:true,maxTicksLimit:7}}) }, print) };
+}
+function stepsCfg(th, print){
+  const m=allLogs(), ds=Object.keys(m).sort().slice(-14); if(!ds.length) return null;
+  return { type:'bar', data:{ labels:ds.map(lbl), datasets:[
+    { type:'bar', label:'Steps', data:ds.map(d=>m[d].steps||0), backgroundColor:ds.map(d=>(m[d].steps||0)>=10000?th.stepsHit:th.steps), borderRadius:print?6:3 },
+    { type:'line', label:'Target', data:ds.map(()=>10000), borderColor:th.stepsHit, borderDash:print?[10,8]:[4,4], pointRadius:0, borderWidth:print?3:1.5 } ]},
+    options: baseOpts(th, { y:axis(th,{beginAtZero:true, suggestedMax:12000}), x:axis(th,{grid:{display:false},ticks:{color:th.text,font:{size:th.font},maxRotation:0,autoSkip:true,maxTicksLimit:7}}) }, print) };
+}
+function bpCfg(th, print){
+  const m=allLogs(), from=addDays(today(),-29), ds=Object.keys(m).sort().filter(d=>d>=from && m[d].sys!=null); if(!ds.length) return null;
+  return { type:'line', data:{ labels:ds.map(lbl), datasets:[
+    { label:'Systolic', data:ds.map(d=>m[d].sys), borderColor:th.sys, tension:.3, pointRadius:print?6:3, pointBackgroundColor:ds.map(d=>m[d].sys>BP_LIMIT?th.sys:th.text), borderWidth:print?4:2 },
+    { label:'Diastolic', data:ds.map(d=>m[d].dia), borderColor:th.dia, tension:.3, pointRadius:print?4:2, borderWidth:print?3:2 },
+    { label:'140 limit', data:ds.map(()=>BP_LIMIT), borderColor:th.limit, borderDash:[4,4], pointRadius:0, borderWidth:print?3:1.5 } ]},
+    options: baseOpts(th, { y:axis(th,{suggestedMin:60, suggestedMax:170}), x:axis(th,{grid:{display:false},ticks:{color:th.text,font:{size:th.font},maxRotation:0,autoSkip:true,maxTicksLimit:6}}) }, print) };
+}
+const charts={};
+function drawCharts(){
+  if(!window.Chart) return;
+  [['cWeight','eWeight',weightCfg],['cCal','eCal',calCfg],['cSteps','eSteps',stepsCfg],['cBp','eBp',bpCfg]].forEach(([id,e,fn])=>{
+    const cfg=fn(THEMES.dash,false); $(e).hidden=!!cfg;
+    if(!cfg){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } return; }
+    if(charts[id]){ charts[id].data=cfg.data; charts[id].options=cfg.options; charts[id].update(); } else charts[id]=new Chart($(id),cfg);
+  });
+}
+
+/* =====================================================================
+   EVENTS — edit the current draft only
+   ===================================================================== */
+function changed(){ if(isLocked(curDate)) return; saveDraft(); renderLive(); renderSummary(); }
+$('sprouts').addEventListener('change',e=>{ cur.sprouts=e.target.checked; changed(); });
+$('drink').addEventListener('change',e=>{ cur.drink=e.target.checked; changed(); });
+document.querySelectorAll('[data-step]').forEach(b=>b.addEventListener('click',()=>{ if(isLocked(curDate)) return; const k=b.dataset.step, max=k==='wholeEggs'||k==='eggWhites'?20:5;
+  cur[k]=Math.max(0,Math.min(max,(cur[k]||0)+Number(b.dataset.d))); $(k).textContent=cur[k]; changed(); }));
+document.querySelectorAll('#daySeg button').forEach(b=>b.addEventListener('click',()=>{ if(isLocked(curDate)) return; cur.dayType=b.dataset.v; renderShiftHeader(); changed(); }));
+const numField=(id,key,int)=>$(id).addEventListener('input',e=>{ let v=numOrNull(e.target.value); if(v!=null&&int) v=Math.round(v); cur[key]=v; changed(); });
+numField('steps','steps',true); numField('workoutMins','workoutMins',true); numField('weight','weight',false); numField('sys','sys',true); numField('dia','dia',true);
+$('sys').addEventListener('change',()=>{ const rs=refSys(); if(rs && rs.v>BP_LIMIT && (cur.workout==='Moderate'||cur.workout==='Intense')){ cur.workout='None'; cur.workoutMins=null; $('workout').value='None'; $('workoutMins').value=''; changed(); toast('Strength workout cleared: systolic above 140 allows light walking only'); } });
+$('workout').addEventListener('change',e=>{ cur.workout=e.target.value; if(cur.workout==='Light'){ $('workoutMins').value=30; } else if(cur.workout==='None'){ cur.workoutMins=null; $('workoutMins').value=''; } changed(); });
+$('notes').addEventListener('input',e=>{ cur.notes=clean(e.target.value,1000); changed(); });
+$('wPlus').onclick=()=>{ if(isLocked(curDate)) return; cur.water=Math.min(8,Math.round(((cur.water||0)+0.5)*10)/10); changed(); };
+$('wMinus').onclick=()=>{ if(isLocked(curDate)) return; cur.water=Math.max(0,Math.round(((cur.water||0)-0.5)*10)/10); changed(); };
+function extraReady(){ const s=$('exSel').value, q=numOrNull($('exQty').value);
+  if(s==='none' || !q || q<=0) return false;
+  if(s==='custom') return $('exName').value.trim()!=='' && numOrNull($('exKcal').value)!=null;
+  return true; }
+function syncExtraUi(){ $('customRow').hidden=$('exSel').value!=='custom'; $('exAdd').disabled=!extraReady(); }
+['exSel','exQty','exName','exKcal'].forEach(id=>$(id).addEventListener('input',syncExtraUi));
+$('exSel').addEventListener('change',syncExtraUi);
+$('exAdd').onclick=()=>{ if(!extraReady()||isLocked(curDate)) return; const s=$('exSel').value, qty=Math.round(Number($('exQty').value)*2)/2;
+  const e = s==='custom' ? {name:clean($('exName').value.trim(),40), kcal:Math.max(0,Math.round(Number($('exKcal').value)))} : {name:EXTRAS[s].name, kcal:EXTRAS[s].kcal};
+  e.qty=qty; cur.extras=cur.extras||[]; cur.extras.push(e);
+  $('exSel').value='none'; $('exQty').value=1; $('exName').value=''; $('exKcal').value=''; syncExtraUi(); renderExtras(cur); changed(); };
+
+/* =====================================================================
+   SAVE — append-only; offline saves wait in an outbox
+   ===================================================================== */
+function closeConfirm(){ $('confirmBox').hidden=true; $('saveBtn').hidden=false; $('saveMsg').innerHTML=''; }
+$('saveBtn').onclick=()=>{ if(!conn.url){ openSettings(); toast('Connect your Google Sheet first'); return; } $('saveBtn').hidden=true; $('confirmBox').hidden=false; $('saveMsg').innerHTML=''; };
+$('cancelSave').onclick=closeConfirm;
+$('confirmSave').onclick=async()=>{
+  if(isLocked(curDate)) return;
+  const rs=refSys(); if(rs && rs.v>BP_LIMIT && (cur.workout==='Moderate'||cur.workout==='Intense')){ $('saveMsg').innerHTML='<div class="flag danger">Remove the strength workout first: systolic above 140 allows light walking only.</div>'; return; }
+  const c=calc(cur), btn=$('confirmSave'); btn.disabled=true; btn.textContent='Saving…';
+  const payload={ shiftDate:curDate, dayType:cur.dayType||'Shift', weight:cur.weight, systolic:cur.sys, diastolic:cur.dia, water:cur.water||0, steps:cur.steps||0,
+    workoutType:cur.workout||'None', workoutMins:c.mins, caloriesIn:r0(c.in), caloriesOut:r0(c.out), netDeficit:r0(c.net),
+    mealsSummary:mealsSummary(cur), notes:clean(cur.notes,1000).trim(), clientTime:new Date().toISOString() };
+  try{
+    const res=await api('append',{log:payload});
+    if(res.status==='success'){ server[curDate]=normalizeRow(res.log); toast('Shift saved to Google Sheet and locked'); }
+    else if(res.status==='duplicate'){ if(res.log) server[curDate]=normalizeRow(res.log); toast('This shift was already saved from another device'); }
+    else throw new Error(res.error||'Save failed');
+    ls.set('rt80_draft_'+curDate, cur); cacheServer(); setSync('ok','Synced');
+  }catch(e){
+    if(e instanceof NetError){ outbox[curDate]=payload; ls.set('rt80_outbox',outbox); ls.set('rt80_draft_'+curDate,cur); toast('Offline: saved on this device, will upload automatically'); setSync('busy','1 shift waiting to upload'); }
+    else { $('saveMsg').innerHTML='<div class="flag danger">Could not save: '+esc(e.message==='not_connected'?'connect your Google Sheet in Settings':e.message)+'. Your entries are kept on this device.</div>'; btn.disabled=false; btn.textContent='Save & lock'; return; }
+  }
+  btn.disabled=false; btn.textContent='Save & lock'; closeConfirm(); loadForm(); renderSummary();
+};
+
+/* =====================================================================
+   SYNC
+   ===================================================================== */
+function setSync(cls,t){ const s=$('sync'); s.className='sync '+cls; s.querySelector('span').textContent=t; }
+function cacheServer(){ ls.set('rt80_cache',{at:Date.now(), rows:server}); }
+async function flushOutbox(){
+  for(const d of Object.keys(outbox)){
+    try{
+      const res=await api('append',{log:outbox[d]});
+      if(res.status==='success'||res.status==='duplicate'){ if(res.log) server[d]=normalizeRow(res.log); delete outbox[d]; }
+      else { toast('Upload of '+fmtDate(d,{day:'numeric',month:'short'})+' refused: '+(res.error||'error')+'. It is back in drafts.'); delete outbox[d]; }
+      ls.set('rt80_outbox',outbox);
+    }catch(e){ if(e instanceof NetError) return false; throw e; }
+  }
+  return true;
+}
+async function refresh(quiet){
+  if(syncing || !Lock.isUnlocked()) return;
+  if(!conn.url||!conn.token){ setSync('err','Not connected'); loadForm(); renderSummary(); return; }
+  syncing=true; if(!quiet) setSync('busy','Syncing…');
+  try{
+    await flushOutbox();
+    const res=await api('list'); if(res.status!=='success') throw new Error(res.error||'Sync failed');
+    const next={}; (res.logs||[]).forEach(r=>{ const n=normalizeRow(r); if(/^\d{4}-\d{2}-\d{2}$/.test(n.date)) next[n.date]=n; });
+    server=next; loaded=true; cacheServer();
+    const t=today(); if(curDate!==t && curDate!==addDays(t,-1)){ curDate=t; cur=draftFor(t); }
+    const pend=Object.keys(outbox).length;
+    setSync(pend?'busy':'ok', pend? pend+' waiting to upload' : 'Synced '+new Date().toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}));
+  }catch(e){
+    loaded = loaded || Object.keys(server).length>0;
+    if(e instanceof NetError) setSync('err','Offline · showing saved copy');
+    else setSync('err', e.message==='not_connected'?'Not connected':e.message);
+  }finally{ syncing=false; }
+  if(document.activeElement && ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName) && !isLocked(curDate)) { renderSummary(); renderShiftHeader(); }
+  else { loadForm(); renderSummary(); }
+}
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) refresh(true); });
+document.addEventListener('rt80:unlocked',()=>{ drawCharts(); refresh(true); });
+window.addEventListener('online',()=>refresh(true));
+setInterval(()=>{ if(!document.hidden) refresh(true); }, POLL_MS);
+$('refreshBtn').onclick=()=>refresh(false);
+
+/* =====================================================================
+   SETTINGS
+   ===================================================================== */
+function openSettings(){ $('settings').hidden=false; $('apiUrl').value=conn.url||''; $('apiToken').value=conn.token||''; updateLockInfo(); window.scrollTo({top:0,behavior:'smooth'}); }
+$('settingsBtn').onclick=()=>{ $('settings').hidden ? openSettings() : ($('settings').hidden=true); };
+$('settingsClose').onclick=()=>{ $('settings').hidden=true; };
+$('connForm').addEventListener('submit',async e=>{ e.preventDefault();
+  const url=$('apiUrl').value.trim(), token=$('apiToken').value.trim();
+  if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url)){ $('connMsg').textContent='The URL should look like https://script.google.com/macros/s/…/exec'; return; }
+  const prev=conn; conn={url,token}; $('connMsg').textContent='Testing…';
+  try{ const r=await api('ping'); if(r.status!=='success') throw new Error(r.error||'Failed');
+    ls.set('rt80_conn',conn); $('connMsg').textContent='Connected'; toast('Connected to your Google Sheet'); $('settings').hidden=true; refresh(false);
+  }catch(err){ conn=prev; $('connMsg').textContent= err instanceof NetError ? 'Could not reach the URL. Check it and that access is set to "Anyone".' : err.message; }
+});
+async function updateLockInfo(){
+  const avail=await Lock.bioAvailable(), on=Lock.hasBio();
+  $('bioToggle').hidden=!avail && !on; $('bioToggle').textContent=on?'Turn off fingerprint':'Enable fingerprint';
+  $('lockInfo').textContent = on ? 'Fingerprint unlock is on. Your PIN always works as a fallback. The app re-locks after 2 minutes in the background.'
+    : avail ? 'PIN only. You can add fingerprint unlock on this device.' : 'This device has no fingerprint sensor available to the browser, so the PIN is used.';
+}
+$('bioToggle').onclick=async()=>{ if(Lock.hasBio()){ Lock.removeBio(); toast('Fingerprint unlock turned off'); } else { try{ await Lock.bioRegister(); toast('Fingerprint unlock is on'); }catch(e){ toast('Fingerprint setup cancelled'); } } updateLockInfo(); };
+$('pinChange').onclick=()=>Lock.changePin(()=>{ openSettings(); });
+$('lockNow').onclick=()=>{ $('settings').hidden=true; Lock.lockNow(); };
+let deferredInstall=null;
+window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); deferredInstall=e; $('installBtn').hidden=false; $('installInfo').textContent='Installs as a standalone app with its own icon.'; });
+$('installBtn').onclick=async()=>{ if(!deferredInstall) return; deferredInstall.prompt(); await deferredInstall.userChoice; deferredInstall=null; $('installBtn').hidden=true; };
+if(matchMedia('(display-mode: standalone)').matches) $('installInfo').textContent='Running as an installed app.';
+
+/* =====================================================================
+   PDF REPORT (jsPDF + Chart.js rendered off-screen at print resolution)
+   ===================================================================== */
+function chartImage(cfgFn, th, w, h){
+  const cfg=cfgFn(th,true); if(!cfg) return null;
+  const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+  const ch=new Chart(cv,cfg); const url=cv.toDataURL('image/png'); ch.destroy(); return url;
+}
+$('pdfBtn').onclick=async()=>{
+  if(!window.jspdf||!window.Chart){ $('pdfMsg').textContent='Report tools are still loading. Try again in a moment.'; return; }
+  const m=allLogs(), ds=Object.keys(m).sort(); if(!ds.length){ $('pdfMsg').textContent='Save at least one shift first.'; return; }
+  $('pdfBtn').disabled=true; $('pdfMsg').textContent='Building report…';
+  try{
+    const dark=$('pdfTheme').value==='dark', th=THEMES[dark?'dark':'light'];
+    const C = dark ? {bg:[14,19,22], ink:[227,236,238], muted:[139,156,163], line:[39,51,58], panel:[21,28,32], acc:[52,211,153], acc2:[34,211,238], bad:[242,109,109], vio:[167,139,250]}
+                   : {bg:[255,255,255], ink:[20,28,32], muted:[96,110,117], line:[222,228,230], panel:[243,246,247], acc:[15,157,116], acc2:[8,145,178], bad:[200,60,60], vio:[109,76,200]};
+    const { jsPDF } = window.jspdf; const doc=new jsPDF({unit:'pt',format:'a4'});
+    const W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=36;
+    const t=today(), last14=ds.slice(-14), lw=currentWeight(), lost=Math.max(0,P.start-lw), pr=projection();
+    const paint=()=>{ doc.setFillColor(...C.bg); doc.rect(0,0,W,H,'F'); };
+    const footer=(n)=>{ doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...C.muted);
+      doc.text('Road to 80 | Generated '+new Date().toLocaleString()+' | Net = calories in - calories out (negative = deficit)', M, H-20); doc.text('Page '+n+' of 2', W-M, H-20, {align:'right'}); };
+    const sectionTitle=(txt,y)=>{ doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...C.muted); doc.text(txt.toUpperCase(), M, y); };
+    const chartPanel=(img,x,y,w,h,title)=>{ doc.setFillColor(...C.panel); doc.roundedRect(x,y,w,h,6,6,'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...C.ink); doc.text(title,x+10,y+16);
+      if(img) doc.addImage(img,'PNG',x+6,y+24,w-12,h-30); else { doc.setFont('helvetica','normal'); doc.setTextColor(...C.muted); doc.text('No data yet',x+w/2,y+h/2,{align:'center'}); } };
+
+    // ---- page 1 ----
+    paint();
+    doc.setFillColor(...C.acc); doc.rect(0,0,W,5,'F');
+    doc.setFont('helvetica','bold'); doc.setFontSize(24); doc.setTextColor(...C.ink); doc.text('ROAD TO', M, 48);
+    doc.setTextColor(...C.acc); doc.text('80', M+doc.getTextWidth('ROAD TO '), 48);
+    doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(...C.muted);
+    doc.text('Progress report | shifts '+fmtDate(last14[0],{day:'numeric',month:'short'})+' to '+fmtDate(last14[last14.length-1],{day:'numeric',month:'short',year:'numeric'})+' | 110 kg start, 80 kg goal', M, 66);
+
+    const r14=last14.map(d=>m[d]), avg=a=>a.length?a.reduce((s,v)=>s+v,0)/a.length:null;
+    const avgNet=avg(r14.map(r=>r.net)), avgSteps=avg(r14.map(r=>r.steps||0)), lb=latest('sys');
+    const tiles=[
+      ['Current weight', lw.toFixed(1)+' kg'], ['Lost so far', lost.toFixed(1)+' kg'], ['To goal', Math.max(0,lw-P.goal).toFixed(1)+' kg'],
+      ['Days to 80 kg', pr.days!=null? pr.days+' d' : '--'], ['Avg net (14)', (avgNet>0?'+':'')+fmt(avgNet)+' kcal'], ['Avg steps (14)', fmt(avgSteps)],
+      ['Last BP (measured)', lb? lb.v+'/'+(m[lb.d].dia??'-') : '--'], ['Est. systolic drop', '-'+(lost*1).toFixed(1)+' mmHg']
+    ];
+    const tw=(W-2*M-3*8)/4, tH=50; let y=84;
+    tiles.forEach(([k,v],i)=>{ const x=M+(i%4)*(tw+8), yy=y+Math.floor(i/4)*(tH+8);
+      doc.setFillColor(...C.panel); doc.roundedRect(x,yy,tw,tH,6,6,'F');
+      if(i===7){ doc.setDrawColor(...C.vio); doc.setLineDashPattern([3,2],0); doc.roundedRect(x,yy,tw,tH,6,6,'S'); doc.setLineDashPattern([],0); }
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...C.muted); doc.text(k.toUpperCase(), x+10, yy+16);
+      doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.setTextColor(...(i===7?C.vio:(i<3?C.acc:C.ink))); doc.text(v, x+10, yy+38); });
+    y+=2*(tH+8)+6;
+    if(pr.eta){ doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...C.muted); doc.text('Projected to reach 80 kg around '+parse(pr.eta).toLocaleDateString(undefined,{day:'numeric',month:'long',year:'numeric'})+' at the current 7-day average deficit of '+fmt(pr.avg)+' kcal/day.', M, y); y+=12; }
+
+    const cw=W-2*M;
+    chartPanel(chartImage(weightCfg,th,1600,640), M, y, cw, 250, 'Weight progression: 110 kg to 80 kg (dashed grey = projection)'); y+=260;
+    const hw=(cw-10)/2;
+    chartPanel(chartImage(calCfg,th,1000,620), M, y, hw, 190, 'Calorie balance: in vs out (last 14)');
+    chartPanel(chartImage(stepsCfg,th,1000,620), M+hw+10, y, hw, 190, 'Steps (last 14, target 10,000)'); y+=200;
+    footer(1);
+
+    // ---- page 2 ----
+    doc.addPage(); paint(); doc.setFillColor(...C.acc); doc.rect(0,0,W,5,'F');
+    y=40; sectionTitle('14-shift ledger', y); y+=14;
+    const cols=[['Date',0],['Type',58],['Wt kg',100],['In',142],['Out',182],['Net',224],['Steps',268],['Workout',318],['BP',392],['H2O',440]];
+    const colX=cols.map(c=>M+8+c[1]);
+    doc.setFillColor(...C.panel); doc.rect(M,y,cw,20,'F'); doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...C.muted);
+    cols.forEach((c,i)=>doc.text(c[0].toUpperCase(), colX[i], y+13)); y+=20;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+    last14.slice().reverse().forEach(d=>{ const r=m[d];
+      const vals=[fmtDate(d,{day:'2-digit',month:'short'}), r.dayType, r.weight!=null?r.weight.toFixed(1):'-', fmt(r.in), fmt(r.out), (r.net>0?'+':'')+fmt(r.net), r.steps!=null?fmt(r.steps):'-',
+        r.workout==='None'?'-':(r.workout+(r.workoutMins?' '+r.workoutMins+'m':'')), r.sys!=null?r.sys+'/'+(r.dia??'-'):'-', r.water.toFixed(1)];
+      vals.forEach((v,i)=>{ let col=C.ink; if(i===5) col=r.net<0?C.acc:C.bad; if(i===8&&r.sys>BP_LIMIT) col=C.bad; if(i===1&&r.dayType!=='Shift') col=C.vio; doc.setTextColor(...col); doc.text(String(v), colX[i], y+13); });
+      doc.setDrawColor(...C.line); doc.line(M,y+19,M+cw,y+19); y+=20; });
+    y+=12;
+    const tot=r14.reduce((s,r)=>s+r.net,0);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...C.muted);
+    doc.text('14-shift total: '+(tot>0?'+':'')+fmt(tot)+' kcal (about '+(Math.abs(tot)/7700).toFixed(2)+' kg '+(tot<0?'of fat-loss energy deficit':'surplus')+') | '+r14.filter(r=>(r.steps||0)>=10000).length+' shifts at 10k steps | '+r14.filter(r=>r.water>=3.5).length+' shifts on water target', M, y); y+=24;
+
+    const bpImg=chartImage(bpCfg,th,1600,520);
+    chartPanel(bpImg, M, y, cw, 170, 'Measured blood pressure (last 30 days, dashed = 140 limit)'); y+=180;
+    doc.setFillColor(...C.panel); doc.roundedRect(M,y,cw,54,6,6,'F'); doc.setDrawColor(...C.vio); doc.setLineDashPattern([3,2],0); doc.roundedRect(M,y,cw,54,6,6,'S'); doc.setLineDashPattern([],0);
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...C.vio); doc.text('MODEL ESTIMATE, NOT A READING', M+10, y+16);
+    doc.setFont('helvetica','normal'); doc.setTextColor(...C.ink);
+    doc.text(doc.splitTextToSize('Estimated systolic drop from weight lost: -'+(lost).toFixed(1)+' mmHg (max(0, 110 - '+lw.toFixed(1)+') x 1 mmHg per kg, a population average). Only measured readings are used for the workout safety lock.', cw-20), M+10, y+30);
+    y+=66;
+
+    const notes=last14.slice().reverse().filter(d=>m[d].notes).slice(0,8);
+    if(notes.length && y<H-90){ sectionTitle('Shift notes', y); y+=14; doc.setFontSize(8.5);
+      for(const d of notes){ const lines=doc.splitTextToSize(fmtDate(d,{day:'2-digit',month:'short'})+'  '+m[d].notes.replace(/\s+/g,' '), cw).slice(0,2);
+        if(y+lines.length*11>H-40) break; doc.setTextColor(...C.ink); doc.text(lines, M, y); y+=lines.length*11+4; } }
+    footer(2);
+
+    const name='road-to-80_report_'+t+'.pdf';
+    doc.save(name);
+    $('pdfMsg').textContent='Saved '+name;
+  }catch(e){ $('pdfMsg').textContent='Could not build the report: '+e.message; }
+  finally{ $('pdfBtn').disabled=false; }
+};
+
+/* =====================================================================
+   BOOT
+   ===================================================================== */
+if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
+pruneDrafts();
+const cached=ls.get('rt80_cache',null); if(cached&&cached.rows){ server=cached.rows; loaded=true; }
+window.addEventListener('load',()=>{ if(Lock.isUnlocked()) drawCharts(); });
+Lock.init(()=>{
+  $('app').hidden=false; loadForm(); renderSummary(); syncExtraUi();
+  if(!conn.url||!conn.token){ openSettings(); setSync('err','Not connected'); }
+  else refresh(false);
+});
+})();
+</script>
+</body>
+</html>
