@@ -4,7 +4,7 @@
  * Google Apps Script API calls are never cached — they always go to the network.
  * Bump VERSION whenever you change index.html so old caches are cleared.
  */
-const VERSION = 'r80-v1';
+const VERSION = 'r80-v3';
 const SHELL = ['./', './index.html', './manifest.webmanifest',
   './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png'];
 const LIB_HOSTS = ['cdnjs.cloudflare.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];

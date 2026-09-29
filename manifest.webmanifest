@@ -1,7 +1,7 @@
 {
   "name": "Road to 80",
   "short_name": "Road to 80",
-  "description": "Night-shift fitness log: diet, activity, weight and BP, synced to your Google Sheet.",
+  "description": "Daily food, activity and weight log with a cumulative deficit tracker, synced to your Google Sheet.",
   "id": "./",
   "start_url": "./?source=pwa",
   "scope": "./",

@@ -1,99 +1,77 @@
-# Road to 80: deployment guide
+# Road to 80 v3: upgrade & deployment guide
 
-About 20 minutes, once. You need a Google account and a free GitHub account.
+v3 replaces the one-row-per-shift model with calendar days (00:00:00–23:59:59, Asia/Singapore) and timestamped entries. You log each item when it happens; the day totals and the cumulative deficit update themselves.
 
-## What goes where
+## 1. Google Sheet schema
 
-| File | Where it lives |
+You don't create anything by hand; `setup` builds it. For reference:
+
+### `Entries` tab (new, append-only; the source of truth)
+
+| Column | Meaning |
 |---|---|
-| `Code.gs` | Apps Script inside your `Road_To_80_Logs` Google Sheet (the private backend) |
-| `index.html`, `manifest.webmanifest`, `sw.js`, `icons/` | A GitHub repository published with GitHub Pages (the app) |
+| Entry_ID | Unique id from the app (a retried upload is never stored twice) |
+| Logged_At | Exact moment, ISO/UTC |
+| Date | Calendar date in Singapore time, `YYYY-MM-DD` |
+| Time | `HH:mm:ss`, Singapore time |
+| Type | `food`, `steps`, `workout`, `weight`, `bp`, `water`, `tag`, `note` |
+| Item | Food or workout name, or day tag (Normal / Rest / Sick) |
+| Qty | Food quantity multiplier (0.25–20) |
+| Kcal_Each | Food kcal per unit |
+| Kcal | Food: Qty × Kcal_Each. Workout: kcal burned |
+| Value | Steps added, weight kg, systolic, water litres, or workout minutes |
+| Value2 | Diastolic |
+| Note | Free text |
+| Source | `app`, or empty for migrated rows |
 
-The GitHub files contain no secrets. Your API token is typed into the app on each device and stays in that device's storage.
+### `Daily` tab (new, derived; never edit)
 
----
+One row per date: Date, Weight_kg (latest entry that day), Weight_Used_kg (carried forward if none logged), Food_kcal, Steps, Step_kcal, Workout_kcal, BMR_kcal, Burned_kcal, Deficit_kcal, Counted (Y if food was logged), Cumulative_Deficit_kcal, Water_L, Systolic, Diastolic, Day_Tag, Entries, Updated_At.
 
-## Part 1: Backend (Google Apps Script)
+It is rebuilt after every upload, and whenever you edit `Entries` by hand.
 
-1. Open your Google Sheet **Road_To_80_Logs** (create it if needed).
-2. Click **Extensions → Apps Script**.
-3. Replace everything in `Code.gs` with the new `Code.gs`. If an **Index** HTML file exists from the previous version, delete it.
-4. Click the gear icon (**Project Settings**) and set **Time zone** to `(GMT+08:00) Singapore`.
-5. Back in the editor, choose the function **setup** in the toolbar dropdown and click **Run**. Approve the permission prompt (Advanced → Go to project → Allow).
-6. Open **Execution log**. Copy the long **API token** it prints. (It is also under Project Settings → Script properties → `API_TOKEN`.)
-   - Existing rows are kept. A `Day_Type` column is added at the end; older rows count as "Shift".
-7. Click **Deploy → New deployment**. Gear icon → **Web app**.
-   - Description: `Road to 80 API`
-   - Execute as: **Me**
-   - Who has access: **Anyone**
-8. Click **Deploy** and copy the **Web app URL** (ends in `/exec`).
+### `Logs` tab (v2): left as it is
 
-"Anyone" is needed because the app runs on github.io, where your Google login cookie is not sent. Every request is refused without the token.
+Run `migrateLegacyLogs` once to copy it into `Entries` (see step 2.4).
 
-**After changing `Code.gs` later:** Deploy → Manage deployments → pencil icon → Version: **New version** → Deploy. The URL stays the same. (Creating a *new deployment* would give you a new URL.)
+## 2. Backend upgrade (Apps Script)
 
-**If the token leaks:** run `rotateToken` once, then enter the new token on each device.
+1. Before upgrading, open the v2 app on each device and make sure nothing says "Waiting to sync".
+2. Open the Sheet → **Extensions → Apps Script**. Replace all of `Code.gs` with the v3 file.
+3. Choose **setup** in the function dropdown → **Run**. Your existing `API_TOKEN` is kept.
+4. Optional: choose **migrateLegacyLogs** → **Run**. Each old shift becomes entries at 12:00:00 on its shift date. Food arrives as one "Legacy shift total" item; the workout burn is reconstructed from the old Calories_Out. It is safe to run twice.
+5. **Deploy → Manage deployments → pencil icon → Version: New version → Deploy.** The /exec URL stays the same, so devices keep working.
 
----
+Profile constants (height, age, gender, start, goal) can be changed in the app under **Settings → Profile**. They are stored in Script properties as `PROFILE`, so every device uses the same numbers. The fallback defaults live in `CONFIG.PROFILE_DEFAULT` at the top of `Code.gs`. Changing the profile recalculates every past day.
 
-## Part 2: Frontend (GitHub Pages)
+## 3. Frontend upgrade (GitHub Pages)
 
-1. Sign in at github.com and click **New repository**.
-   - Name: `road-to-80`
-   - Visibility: **Public** (free GitHub Pages needs a public repo; the code has no secrets)
-   - Create repository.
-2. Click **uploading an existing file**. Drag in `index.html`, `manifest.webmanifest`, `sw.js` and the whole `icons` folder. Click **Commit changes**.
-   Check the repo shows `icons/icon-192.png` and so on inside an `icons` folder.
-3. Go to **Settings → Pages**. Under *Build and deployment*: Source **Deploy from a branch**, Branch **main**, folder **/ (root)** → **Save**.
-4. Wait 1–2 minutes. The page shows your site address, e.g.
-   `https://YOUR-USERNAME.github.io/road-to-80/`
+1. In your `road-to-80` repository, upload and overwrite `index.html`, `sw.js` and `manifest.webmanifest` (icons are unchanged).
+2. Open the app, then close and reopen it once. The service worker version is now `r80-v3`, so the new version loads.
+3. Your PIN, fingerprint and connection carry over.
 
----
+## 4. How the numbers work
 
-## Part 3: Install on Android
+- **Burned** = BMR + step burn + logged workouts
+  - BMR (Mifflin-St Jeor) = 10 × kg + 6.25 × cm − 5 × age + 5 (male) or − 161 (female)
+  - Step burn = steps × kg × 0.0004 → 10,000 steps ≈ 440 kcal at 110 kg, ≈ 320 kcal at 80 kg
+  - kg = that day's latest weight, or the last logged weight before it, or the start weight
+- **Daily deficit** = burned − eaten
+- **Cumulative deficit** = sum of daily deficits over days with food logged. Days with no food logged are skipped, so an unlogged day can't count as a full-BMR deficit. Surplus days subtract.
+- **Target** = (start − goal) × 7,700 = 231,000 kcal. Projected fat lost = cumulative ÷ 7,700.
+- **Today** counts as soon as food is logged, with the full day's BMR, so it reads high until the evening; the card says so.
+- **Days to 80 kg** = (current − goal) × 7,700 ÷ average deficit of the last 7 *completed* days with food.
 
-1. Open the site address in **Chrome** on your phone.
-2. **Choose a PIN** (4–6 digits), then enter it again.
-3. When asked, tap **Use fingerprint to unlock** and touch the sensor.
-4. Settings opens. Paste the **Web app URL** and **API token**, then tap **Save & test connection**. The status dot turns green.
-5. Chrome menu **⋮ → Install app** (or **Add to Home screen → Install**). The app gets its own icon and opens full screen.
+## 5. Logging behaviour
 
-From then on: open the app → fingerprint → log your shift.
+- **Timestamps:** every tap is one entry stamped with the time you logged it (Singapore time), even if your phone is set to another time zone.
+- **Undo window:** new entries wait 5 seconds before sending. Tap **Undo** in the toast or timeline to drop one. After that the entry is permanent in the app; correct it in the `Entries` tab.
+- **Offline:** entries stay queued on the device with their original time and upload when you're back online (up to 7 days old).
+- **Weight:** log any time; the latest entry of the day is that day's weight.
+- **Steps:** **+ Add** logs extra steps. **Set day total** logs the difference to reach the total your phone shows.
+- **Cheat meal:** it needs a second tap within 3 seconds, so it can't be logged by accident.
+- **Past days:** use ‹ › on the timeline card, or tap a row in Daily history. They are read-only.
 
-## Part 4: Laptop
+## 6. Correcting a mistake
 
-1. Open the same site address in Chrome or Edge.
-2. Set a PIN for this computer. If it has Windows Hello or Touch ID, you can turn that on too.
-3. Enter the same URL and token.
-4. Optional: the install icon in the address bar makes it a desktop app.
-
----
-
-## How sync works
-
-- **Saving a shift** sends it straight to the Sheet. Every device sees it on its next sync.
-- **The app syncs** when it opens, when you return to it, every 60 seconds while it is open, and when you tap the refresh button.
-- **Offline save**: the shift is kept on the phone marked "Waiting to sync" and uploads by itself when you are back online.
-- **Drafts are per device.** Unsaved entries during a shift stay on the device you typed them on, so log a whole shift on one device. The Sheet only receives final, locked rows.
-- **One row per shift.** A second save for the same shift date is refused by the server, even from another device.
-- **Corrections** can only be made in the Sheet.
-
-## Updating the app later
-
-Upload the changed files to the repo. In `sw.js`, change `VERSION = 'r80-v1'` to `'r80-v2'` (and so on) with every update so phones drop the old cached copy. The update shows on the second launch after upload.
-
-## Troubleshooting
-
-| Symptom | Fix |
-|---|---|
-| "Wrong API token" | Re-copy the token from Script properties. No spaces. |
-| "Could not reach the URL" | URL must end in `/exec`; deployment access must be **Anyone**. |
-| Changes to `Code.gs` not taking effect | Manage deployments → edit → **New version**. |
-| No "Install app" option | Open the github.io address in Chrome (not an in-app browser); wait for the page to finish loading once. |
-| No fingerprint option | The phone needs a fingerprint or screen lock set up in Android settings. The PIN always works. |
-| Forgot PIN | Tap **Forgot PIN? → Reset device**. It clears only this device; re-enter URL and token. The Sheet is not touched. |
-
-## Security, briefly
-
-- **Your data** is protected by the API token (checked by Apps Script on every request) and by your Google account, which owns the Sheet.
-- **The fingerprint/PIN lock** protects the app on your device against someone picking up your unlocked phone. It runs in the browser, so it is not a server-side check.
+Open the `Entries` tab, then edit or delete the row. `Daily` refreshes automatically (the sheet's `onEdit` trigger). If it ever looks stale, run `rebuildDailyNow`. The app shows the change on its next sync.
