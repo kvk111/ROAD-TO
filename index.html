@@ -150,6 +150,8 @@ select.inp{appearance:none;-webkit-appearance:none;background-image:linear-gradi
 .fbtn.cheat{border-style:dashed;border-color:#5a4418}
 .fbtn.cheat .k{color:var(--warn)}
 .fbtn.armed{border-color:var(--warn);background:var(--warn-d)}
+.fbtn.wide{grid-column:1/-1;min-height:60px}
+.btn.armed{border-color:var(--warn);background:var(--warn-d);color:var(--warn)}
 details.more{margin-top:10px}
 details.more summary{cursor:pointer;font-size:13px;color:var(--muted);padding:6px 0}
 .custom-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,.8fr) auto;gap:8px;align-items:end}
@@ -333,6 +335,8 @@ details.more summary{cursor:pointer;font-size:13px;color:var(--muted);padding:6p
           <div class="stepper"><button type="button" id="qMinus" aria-label="Less">−</button><output class="num" id="qty">×1</output><button type="button" id="qPlus" aria-label="More">+</button></div>
         </div>
         <div class="foodgrid" id="foodGrid"></div>
+        <div class="sub-h">Boiled veggie soup · no oil</div>
+        <div class="foodgrid" id="soupGrid"></div>
         <details class="more"><summary>More presets (your earlier routine)</summary><div class="foodgrid" id="moreGrid"></div></details>
         <div class="sub-h">Custom item</div>
         <form class="custom-grid" id="customForm" autocomplete="off">
@@ -356,19 +360,26 @@ details.more summary{cursor:pointer;font-size:13px;color:var(--muted);padding:6p
           <div class="grid2">
             <div class="field"><label for="wType">Type</label>
               <select class="inp" id="wType">
-                <option value="custom">Custom (enter kcal)</option>
+                <option value="dumbbell" selected>Dumbbells</option>
                 <option value="walk">Brisk walk · MET 3.5</option>
                 <option value="light">Light mobility / yoga · MET 3.0</option>
-                <option value="moderate">Moderate strength · MET 5.0</option>
-                <option value="intense">Intense / heavy · MET 6.0</option>
+                <option value="intense">Heavy lifting · MET 6.0</option>
+                <option value="custom">Custom (enter kcal)</option>
               </select>
             </div>
-            <div class="field"><label for="wMins">Minutes</label><input class="inp" id="wMins" type="number" inputmode="numeric" min="1" max="600" placeholder="30"></div>
-            <div class="field"><label for="wName">Name</label><input class="inp" id="wName" maxlength="40" placeholder="Dumbbells"></div>
+            <div class="field" id="fMuscle"><label for="dbMuscle">Muscle group</label>
+              <select class="inp" id="dbMuscle"><option>Chest</option><option>Biceps</option><option>Squats / Legs</option><option>Back</option><option>Shoulders</option></select>
+            </div>
+            <div class="field" id="fDbMins"><label for="dbMins">Duration</label>
+              <select class="inp" id="dbMins"><option value="10">10 min</option><option value="15">15 min</option><option value="20">20 min</option><option value="25">25 min</option><option value="30" selected>30 min</option><option value="40">40 min</option><option value="45">45 min</option><option value="60">60 min</option><option value="75">75 min</option><option value="90">90 min</option></select>
+            </div>
+            <div class="field" id="fMins" hidden><label for="wMins">Minutes</label><input class="inp" id="wMins" type="number" inputmode="numeric" min="1" max="600" placeholder="30"></div>
+            <div class="field" id="fName" hidden><label for="wName">Name</label><input class="inp" id="wName" maxlength="40" placeholder="Swimming"></div>
             <div class="field"><label for="wKcal">kcal burned</label><input class="inp" id="wKcal" type="number" inputmode="numeric" min="1" max="3000" placeholder="0"></div>
           </div>
+          <div class="meta num" id="dbHint"></div>
           <div id="workoutFlag" role="alert"></div>
-          <button class="btn" type="submit">Log workout</button>
+          <button class="btn" type="submit" id="wSubmit">Log workout</button>
         </form>
       </div>
 
@@ -449,8 +460,9 @@ details.more summary{cursor:pointer;font-size:13px;color:var(--muted);padding:6p
           <div class="chart-box"><canvas id="cSteps" aria-label="Daily steps"></canvas><div class="empty-chart" id="eSteps">No days logged yet.</div></div>
         </div>
         <div class="card wide">
-          <div class="section-h"><h2>BP readings · 30 days</h2><div class="legend"><span><i style="background:var(--danger)"></i>SYS</span><span><i style="background:var(--warn)"></i>DIA</span></div></div>
-          <div class="chart-box"><canvas id="cBp" aria-label="Blood pressure readings"></canvas><div class="empty-chart" id="eBp">Measured BP readings will appear here.</div></div>
+          <div class="section-h"><h2>BP vs weight</h2><div class="legend"><span><i style="background:var(--danger)"></i>Systolic</span><span><i style="background:var(--warn)"></i>Diastolic</span><span><i style="background:var(--violet)"></i>Expected from weight</span><span><i style="background:var(--emerald)"></i>Weight (right axis)</span></div></div>
+          <div class="chart-box tall"><canvas id="cBp" aria-label="Blood pressure compared with weight"></canvas><div class="empty-chart" id="eBp">Log BP readings to see them against your weight.</div></div>
+          <p class="meta" id="bpCorr" style="margin:10px 0 0"></p>
         </div>
       </div>
 
@@ -470,9 +482,12 @@ details.more summary{cursor:pointer;font-size:13px;color:var(--muted);padding:6p
           <div class="field" style="flex:0 0 150px"><label for="pdfTheme">Style</label>
             <select class="inp" id="pdfTheme"><option value="light">Light (print)</option><option value="dark">Dark</option></select>
           </div>
+          <div class="field" style="flex:0 0 150px"><label for="pdfRange">Day-by-day pages</label>
+            <select class="inp" id="pdfRange"><option value="all">All days</option><option value="30">Last 30 days</option><option value="14">Last 14 days</option><option value="7">Last 7 days</option></select>
+          </div>
           <button class="btn primary" type="button" id="pdfBtn">Export report (PDF)</button>
         </div>
-        <p class="meta" id="pdfMsg" style="margin:8px 0 0">A4 report: cumulative deficit, weight curve, calories, steps, BP and the last 14 days.</p>
+        <p class="meta" id="pdfMsg" style="margin:8px 0 0">Page 1: overview, deficit milestone and charts. Following pages: every day with weight, BP, each food item with its time, eaten vs burned and the net deficit.</p>
       </div>
     </div>
   </div>
@@ -502,10 +517,16 @@ const FOODS = [
   {id:'pome',     name:'Pomegranate',      note:'1 whole fruit · occasional',  kcal:220, unit:'fruit'},
   {id:'cheat',    name:'Cheat meal',       note:'White rice + meat curry',     kcal:700, unit:'serving', cheat:true}
 ];
+const SOUP_FOODS = [
+  {id:'soupbowl', name:'Veggie soup bowl', note:'1 carrot + 1 beetroot + 2 drumsticks, boiled', kcal:120, unit:'bowl', wide:true},
+  {id:'broccoli', name:'Broccoli',         note:'Boiled / steamed, 100 g',  kcal:35, unit:'100 g'},
+  {id:'carrot',   name:'Carrot',           note:'1 whole, boiled',          kcal:30, unit:'carrot'},
+  {id:'beetroot', name:'Beetroot',         note:'1 whole, boiled',          kcal:45, unit:'beetroot'},
+  {id:'drumstick',name:'Drumstick',        note:'2 whole, boiled / extract',kcal:40, unit:'2 sticks'}
+];
 const MORE_FOODS = [
   {id:'seeds',   name:'Seeds drink',        note:'Seeds, fig, date, whey, creatine', kcal:450, unit:'glass'},
   {id:'sprouts', name:'Sprouts salad',      note:'Moong / chana, no oil',            kcal:200, unit:'bowl'},
-  {id:'soup',    name:'Veg clear soup',     note:'Drumstick, carrot, beet, broccoli',kcal:95,  unit:'bowl'},
   {id:'egg',     name:'Boiled egg',         note:'Whole',                            kcal:75,  unit:'egg'},
   {id:'ew',      name:'Boiled egg white',   note:'',                                 kcal:17,  unit:'white'},
   {id:'chicken', name:'Chicken breast',     note:'150 g cooked',                     kcal:240, unit:'portion'},
@@ -515,7 +536,9 @@ const MORE_FOODS = [
   {id:'papaya',  name:'Papaya',             note:'1 cup / 150 g',                    kcal:60,  unit:'cup'},
   {id:'guava',   name:'Guava',              note:'1 medium',                         kcal:40,  unit:'fruit'}
 ];
-const WORKOUT_MET = { walk:['Brisk walk',3.5], light:['Mobility / yoga',3.0], moderate:['Strength training',5.0], intense:['Heavy lifting',6.0] };
+const WORKOUT_MET = { walk:['Brisk walk',3.5], light:['Mobility / yoga',3.0], intense:['Heavy lifting',6.0] };
+// Dumbbell work: 5 kcal/min at 80 kg rising to 7 kcal/min at 110 kg (linear, clamped to 5–7).
+const dbRate = w => Math.min(7, Math.max(5, 5 + (w-80)*2/30));
 const DEFAULT_PROFILE = { heightCm:167.64, age:32, gender:'male', startKg:110, goalKg:80, stepKcalPerKgPerStep:0.0004 };
 
 /* =====================================================================
@@ -783,7 +806,7 @@ setInterval(()=>{ if(queue.some(q=>q.sendAt<=Date.now() && !q.sending)) flushQue
 
 /* ---------- food ---------- */
 function foodButton(f, grid){
-  const b=document.createElement('button'); b.type='button'; b.className='fbtn'+(f.cheat?' cheat':'');
+  const b=document.createElement('button'); b.type='button'; b.className='fbtn'+(f.cheat?' cheat':'')+(f.wide?' wide':'');
   b.innerHTML='<b>'+esc(f.name)+'</b><small>'+esc(f.note||'')+'</small><span class="k">'+f.kcal+' kcal / '+esc(f.unit)+'</span>';
   b.onclick=()=>{
     if(f.cheat && !b.classList.contains('armed')){ b.classList.add('armed'); b.querySelector('.k').textContent='Tap again to log ×'+qty; setTimeout(()=>{ b.classList.remove('armed'); b.querySelector('.k').textContent=f.kcal+' kcal / '+f.unit; },3000); return; }
@@ -793,7 +816,7 @@ function foodButton(f, grid){
   };
   grid.appendChild(b);
 }
-FOODS.forEach(f=>foodButton(f,$('foodGrid'))); MORE_FOODS.forEach(f=>foodButton(f,$('moreGrid')));
+FOODS.forEach(f=>foodButton(f,$('foodGrid'))); SOUP_FOODS.forEach(f=>foodButton(f,$('soupGrid'))); MORE_FOODS.forEach(f=>foodButton(f,$('moreGrid')));
 function setQty(v){ qty=Math.max(0.5,Math.min(20,Math.round(v*2)/2)); $('qty').textContent='×'+qty; $('cQty').textContent=qty; }
 $('qMinus').onclick=()=>setQty(qty-(qty>1?1:0.5)); $('qPlus').onclick=()=>setQty(qty+(qty<1?0.5:1));
 $('customForm').addEventListener('submit',e=>{ e.preventDefault(); const n=clean($('cName').value,40), k=numOrNull($('cKcal').value);
@@ -810,16 +833,32 @@ $('stepsSet').onclick=()=>{ const v=numOrNull($('stepsIn').value), cur=(dayMap()
 
 /* ---------- workout ---------- */
 function lastSys(){ const l=latestOf('sys'); return l; }
-function workoutEstimate(){ const t=$('wType').value, m=numOrNull($('wMins').value);
-  if(t==='custom'||!m) return; $('wKcal').value=r0(WORKOUT_MET[t][1]*currentWeight()*(m/60)); if(!$('wName').value || $('wName').dataset.auto==='1'){ $('wName').value=WORKOUT_MET[t][0]; $('wName').dataset.auto='1'; } }
-$('wType').addEventListener('change',workoutEstimate); $('wMins').addEventListener('input',workoutEstimate);
-$('wName').addEventListener('input',()=>{ $('wName').dataset.auto='0'; });
-$('workoutForm').addEventListener('submit',e=>{ e.preventDefault(); const k=numOrNull($('wKcal').value), t=$('wType').value;
+function workoutEstimate(){
+  const t=$('wType').value, db=t==='dumbbell', w=currentWeight();
+  $('fMuscle').hidden=!db; $('fDbMins').hidden=!db; $('fMins').hidden=db; $('fName').hidden=db||t!=='custom';
+  $('wSubmit').classList.remove('armed'); $('wSubmit').textContent='Log workout';
+  if(db){ const m=Number($('dbMins').value), rate=dbRate(w);
+    $('wKcal').value=r0(rate*m);
+    $('dbHint').textContent='≈ '+rate.toFixed(1)+' kcal/min at '+w.toFixed(1)+' kg → '+$('dbMuscle').value+', '+m+' min ≈ '+r0(rate*m)+' kcal. You can edit the kcal.'; return; }
+  $('dbHint').textContent = t==='custom' ? 'Enter the name and the kcal from your watch or app.' : '';
+  const m=numOrNull($('wMins').value); if(t==='custom'||!m) return;
+  $('wKcal').value=r0(WORKOUT_MET[t][1]*w*(m/60));
+}
+['wType','dbMuscle','dbMins'].forEach(id=>$(id).addEventListener('change',workoutEstimate)); $('wMins').addEventListener('input',workoutEstimate);
+$('workoutForm').addEventListener('submit',e=>{ e.preventDefault(); const k=numOrNull($('wKcal').value), t=$('wType').value, btn=$('wSubmit');
   if(!k||k<1){ $('wKcal').focus(); return; }
-  const ls_=lastSys(); if(ls_ && ls_.v>BP_LIMIT && (t==='moderate'||t==='intense')) { $('workoutFlag').innerHTML='<div class="flag danger">Blocked: last measured systolic is '+ls_.v+'. Light activity only until a reading at or below '+BP_LIMIT+'.</div>'; return; }
-  const name=clean($('wName').value,40)||(t==='custom'?'Workout':WORKOUT_MET[t][0]);
-  logEntry({type:'workout', item:name, kcal:r0(k), value:numOrNull($('wMins').value)}, name+' · '+r0(k)+' kcal');
-  $('wKcal').value=''; $('wMins').value=''; $('wName').value=''; $('wName').dataset.auto='0'; $('wType').value='custom'; });
+  const ls_=lastSys(), high=ls_ && ls_.v>BP_LIMIT;
+  if(high && t==='intense'){ return; }
+  if(high && t==='dumbbell' && !btn.classList.contains('armed')){        // ask once more while BP is high
+    btn.classList.add('armed'); btn.textContent='Log anyway (last BP '+ls_.v+')'; clearTimeout(btn._t);
+    btn._t=setTimeout(()=>{ btn.classList.remove('armed'); btn.textContent='Log workout'; },4000); return; }
+  btn.classList.remove('armed'); btn.textContent='Log workout';
+  let name, mins;
+  if(t==='dumbbell'){ name='Dumbbells · '+$('dbMuscle').value; mins=Number($('dbMins').value); }
+  else { name = t==='custom' ? (clean($('wName').value,40)||'Workout') : WORKOUT_MET[t][0]; mins=numOrNull($('wMins').value); }
+  logEntry({type:'workout', item:name, kcal:r0(k), value:mins}, name+' · '+(mins?mins+' min · ':'')+r0(k)+' kcal');
+  if(t==='dumbbell') workoutEstimate(); else { $('wKcal').value=''; $('wMins').value=''; $('wName').value=''; }
+});
 
 /* ---------- body ---------- */
 $('weightForm').addEventListener('submit',e=>{ e.preventDefault(); const v=numOrNull($('wtIn').value);
@@ -877,9 +916,10 @@ function renderToday(){
   document.querySelectorAll('#tagSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.v===d.tag)));
   // workout safety
   const lsys=lastSys(), lock=lsys&&lsys.v>BP_LIMIT;
-  ['moderate','intense'].forEach(k=>{ const o=$('wType').querySelector('option[value='+k+']'); o.disabled=!!lock; });
-  if(lock && ['moderate','intense'].includes($('wType').value)) $('wType').value='custom';
-  $('workoutFlag').innerHTML = lock ? '<div class="flag danger">Light activity only: last measured systolic '+lsys.v+' mmHg ('+fmtDate(lsys.d,{day:'numeric',month:'short'})+') is above '+BP_LIMIT+'. Strength presets unlock after a reading at or below '+BP_LIMIT+'.</div>' : '';
+  const io=$('wType').querySelector('option[value=intense]'); io.disabled=!!lock; io.textContent='Heavy lifting · MET 6.0'+(lock?' · locked (BP)':'');
+  if(lock && $('wType').value==='intense'){ $('wType').value='dumbbell'; workoutEstimate(); }
+  $('workoutFlag').innerHTML = lock ? '<div class="flag danger">Last measured systolic is '+lsys.v+' mmHg ('+fmtDate(lsys.d,{day:'numeric',month:'short'})+'), above '+BP_LIMIT+'. Heavy lifting is locked. Dumbbell work can still be logged: keep the weights moderate, breathe out on every lift, never hold your breath or train to failure, and stop if you feel dizzy or get a headache.</div>' : '';
+  if(!$('wKcal').value && $('wType').value==='dumbbell') workoutEstimate();
   const ps=$('pBmr'); if(ps) ps.textContent=fmt(bmrFor(profile(),currentWeight()))+' kcal/day';
 }
 const TYPE_LABEL={food:'Food',steps:'Steps',workout:'Workout',weight:'Weight',bp:'BP',water:'Water',tag:'Day',note:'Note'};
@@ -940,6 +980,7 @@ function renderBp(){
   else { $('bpLast').textContent='—'; $('bpLast').style.color=''; $('bpLastMeta').textContent='No reading logged yet'; }
   const lost=Math.max(0,p.startKg-lw); $('bpEst').innerHTML='−'+lost.toFixed(1)+'<small>mmHg</small>';
   $('bpEstMeta').textContent='From '+lost.toFixed(1)+' kg lost ('+p.startKg+' → '+lw.toFixed(1)+' kg)';
+  $('bpCorr').textContent=bpWeightText(bpWeightSummary(), false);
   let bf=''; if(lb&&lb.d===sgToday()){ bf = lb.v>BP_LIMIT?'<div class="flag danger">Today\'s systolic '+lb.v+' is above '+BP_LIMIT+'. Re-check after 5 minutes seated.</div>':lb.v>=130?'<div class="flag warn">Elevated today ('+lb.v+'). The trend matters more than one reading.</div>':'<div class="flag ok">Today\'s systolic '+lb.v+' is in range.</div>'; }
   $('bpFlag').innerHTML=bf;
 }
@@ -956,9 +997,9 @@ function renderHistory(){
 
 /* ---------- charts (shared by dashboard + PDF) ---------- */
 const THEMES = {
-  dash:{ text:'#8b9ca3', grid:'rgba(139,156,163,.12)', a:'#34d399', aFill:'rgba(52,211,153,.14)', b:'#22d3ee', proj:'#5f7079', start:'rgba(139,156,163,.35)', inBar:'#2f8f73', sys:'#f26d6d', dia:'#f2b64c', limit:'rgba(242,109,109,.45)', font:11, tip:true },
-  light:{ text:'#4b5a61', grid:'rgba(20,28,32,.08)', a:'#0f9d74', aFill:'rgba(15,157,116,.12)', b:'#0891b2', proj:'#9aa7ad', start:'rgba(20,28,32,.25)', inBar:'#7cc7ae', sys:'#d14343', dia:'#c98a12', limit:'rgba(209,67,67,.45)', font:22 },
-  dark:{ text:'#8b9ca3', grid:'rgba(139,156,163,.14)', a:'#34d399', aFill:'rgba(52,211,153,.16)', b:'#22d3ee', proj:'#6b7c84', start:'rgba(139,156,163,.35)', inBar:'#2f8f73', sys:'#f26d6d', dia:'#f2b64c', limit:'rgba(242,109,109,.45)', font:22 }
+  dash:{ vio:'#a78bfa', text:'#8b9ca3', grid:'rgba(139,156,163,.12)', a:'#34d399', aFill:'rgba(52,211,153,.14)', b:'#22d3ee', proj:'#5f7079', start:'rgba(139,156,163,.35)', inBar:'#2f8f73', sys:'#f26d6d', dia:'#f2b64c', limit:'rgba(242,109,109,.45)', font:11, tip:true },
+  light:{ vio:'#6d4cc8', text:'#4b5a61', grid:'rgba(20,28,32,.08)', a:'#0f9d74', aFill:'rgba(15,157,116,.12)', b:'#0891b2', proj:'#9aa7ad', start:'rgba(20,28,32,.25)', inBar:'#7cc7ae', sys:'#d14343', dia:'#c98a12', limit:'rgba(209,67,67,.45)', font:22 },
+  dark:{ vio:'#a78bfa', text:'#8b9ca3', grid:'rgba(139,156,163,.14)', a:'#34d399', aFill:'rgba(52,211,153,.16)', b:'#22d3ee', proj:'#6b7c84', start:'rgba(139,156,163,.35)', inBar:'#2f8f73', sys:'#f26d6d', dia:'#f2b64c', limit:'rgba(242,109,109,.45)', font:22 }
 };
 const lbl = d => fmtDate(d,{day:'numeric',month:'short'});
 function opts(th, scales, print){ return { responsive:!print, maintainAspectRatio:false, animation:print?false:{duration:300}, devicePixelRatio:print?1:undefined,
@@ -996,16 +1037,46 @@ function stepsCfg(th, print){ const ds=effectiveDays().slice(-14); if(!ds.length
     { type:'bar', label:'Steps', data:ds.map(d=>d.steps), backgroundColor:ds.map(d=>d.steps>=10000?th.a:th.b), borderRadius:print?6:3 },
     { type:'line', label:'Target', data:ds.map(()=>10000), borderColor:th.a, borderDash:print?[10,8]:[4,4], pointRadius:0, borderWidth:print?3:1.5 } ]},
     options: opts(th, { y:ax(th,{beginAtZero:true, suggestedMax:12000}), x:xax(th) }, print) }; }
-function bpCfg(th, print){ const from=addDays(sgToday(),-29), ds=effectiveDays().filter(d=>d.date>=from && d.sys!=null); if(!ds.length) return null;
-  return { type:'line', data:{ labels:ds.map(d=>lbl(d.date)), datasets:[
-    { label:'Systolic', data:ds.map(d=>d.sys), borderColor:th.sys, tension:.3, pointRadius:print?6:3, pointBackgroundColor:ds.map(d=>d.sys>BP_LIMIT?th.sys:th.text), borderWidth:W2(print) },
-    { label:'Diastolic', data:ds.map(d=>d.dia), borderColor:th.dia, tension:.3, pointRadius:print?4:2, borderWidth:print?3:2 },
-    { label:'140 limit', data:ds.map(()=>BP_LIMIT), borderColor:th.limit, borderDash:[4,4], pointRadius:0, borderWidth:print?3:1.5 } ]},
-    options: opts(th, { y:ax(th,{suggestedMin:60, suggestedMax:170}), x:xax(th,6) }, print) }; }
+// BP vs weight: measured readings (left axis) against logged weight (right axis), plus the
+// systolic you'd expect if BP fell 1 mmHg per kg lost from your first reading.
+function bpWeightCfg(th, print){
+  const days=effectiveDays(), first=days.find(d=>d.sys!=null); if(!first) return null;
+  const rows=days.filter(d=>d.sys!=null||d.weight!=null), sys0=first.sys, w0=first.weightUsed, p=profile();
+  const expected=rows.map(d=>d.date>=first.date ? Math.round(sys0-(w0-d.weightUsed)) : null);
+  return { type:'line', data:{ labels:rows.map(d=>lbl(d.date)), datasets:[
+    { label:'Systolic', data:rows.map(d=>d.sys), yAxisID:'y', borderColor:th.sys, backgroundColor:th.sys, tension:.3, spanGaps:true, borderWidth:W2(print), pointRadius:rows.map(d=>d.sys==null?0:(print?6:3)), pointBackgroundColor:rows.map(d=>d.sys>BP_LIMIT?th.sys:th.text) },
+    { label:'Diastolic', data:rows.map(d=>d.dia), yAxisID:'y', borderColor:th.dia, tension:.3, spanGaps:true, borderWidth:print?3:1.5, pointRadius:rows.map(d=>d.dia==null?0:(print?4:2)) },
+    { label:'Expected from weight', data:expected, yAxisID:'y', borderColor:th.vio, borderDash:print?[12,8]:[5,4], spanGaps:true, pointRadius:0, borderWidth:print?3:1.5 },
+    { label:'140 limit', data:rows.map(()=>BP_LIMIT), yAxisID:'y', borderColor:th.limit, borderDash:[4,4], pointRadius:0, borderWidth:print?2:1 },
+    { label:'Weight (kg)', data:rows.map(d=>d.weight), yAxisID:'y1', borderColor:th.a, backgroundColor:th.aFill, tension:.25, spanGaps:true, borderWidth:W2(print), pointRadius:rows.map(d=>d.weight==null?0:(print?4:2)), pointBackgroundColor:th.a } ]},
+    options: opts(th, {
+      y: ax(th,{position:'left', suggestedMin:70, suggestedMax:170, title:{display:true, text:'mmHg', color:th.text, font:{size:th.font}}}),
+      y1: { position:'right', suggestedMin:p.goalKg, suggestedMax:p.startKg, grid:{drawOnChartArea:false}, ticks:{color:th.a, font:{size:th.font}, callback:v=>v+' kg'} },
+      x: xax(th, print?8:7) }, print) };
+}
+// Plain-language summary of how systolic has moved alongside weight.
+function bpWeightSummary(){
+  const days=effectiveDays(), bp=days.filter(d=>d.sys!=null); if(!bp.length) return null;
+  const a=bp[0], b=bp[bp.length-1], dSys=b.sys-a.sys, dKg=a.weightUsed-b.weightUsed;
+  const out={ n:bp.length, first:a, last:b, dSys, dKg, perKg: dKg>=1 ? dSys/dKg : null, r:null };
+  if(bp.length>=4){ const xs=bp.map(d=>d.weightUsed), ys=bp.map(d=>d.sys), mx=xs.reduce((s,v)=>s+v,0)/xs.length, my=ys.reduce((s,v)=>s+v,0)/ys.length;
+    let sxy=0,sxx=0,syy=0; xs.forEach((x,i)=>{ sxy+=(x-mx)*(ys[i]-my); sxx+=(x-mx)**2; syy+=(ys[i]-my)**2; });
+    if(sxx>0&&syy>0) out.r=sxy/Math.sqrt(sxx*syy); }
+  return out;
+}
+function bpWeightText(s, ascii){
+  if(!s) return 'No BP readings yet.';
+  const mm=ascii?'mmHg':'mmHg', arrow=ascii?' -> ':' → ', minus=ascii?'-':'−';
+  if(s.n===1) return 'First reading '+s.first.sys+'/'+(s.first.dia??'-')+' at '+s.first.weightUsed.toFixed(1)+' kg. Log BP regularly (same time of day, seated 5 min) to see the trend.';
+  let t='Systolic '+s.first.sys+arrow+s.last.sys+' '+mm+' ('+(s.dSys<=0?minus:'+')+Math.abs(s.dSys)+') while weight went '+s.first.weightUsed.toFixed(1)+arrow+s.last.weightUsed.toFixed(1)+' kg ('+(s.dKg>=0?minus:'+')+Math.abs(s.dKg).toFixed(1)+') across '+s.n+' readings.';
+  if(s.perKg!=null) t+=' That is '+(s.perKg<=0?minus:'+')+Math.abs(s.perKg).toFixed(1)+' '+mm+' per kg lost (model expects about '+minus+'1).';
+  if(s.r!=null) t+=' Weight-BP correlation r = '+s.r.toFixed(2)+(s.r>0.5?' (BP is tracking weight)':s.r>0.2?' (weak link so far)':' (no clear link yet)')+'.';
+  return t;
+}
 const charts={};
 function drawCharts(){
   if(!window.Chart) return;
-  [['cCum','eCum',cumCfg],['cWeight','eWeight',weightCfg],['cCal','eCal',calCfg],['cSteps','eSteps',stepsCfg],['cBp','eBp',bpCfg]].forEach(([id,e,fn])=>{
+  [['cCum','eCum',cumCfg],['cWeight','eWeight',weightCfg],['cCal','eCal',calCfg],['cSteps','eSteps',stepsCfg],['cBp','eBp',bpWeightCfg]].forEach(([id,e,fn])=>{
     const cfg=fn(THEMES.dash,false); $(e).hidden=!!cfg;
     if(!cfg){ if(charts[id]){ charts[id].destroy(); delete charts[id]; } return; }
     if(charts[id]){ charts[id].data=cfg.data; charts[id].options=cfg.options; charts[id].update('none'); } else charts[id]=new Chart($(id),cfg);
@@ -1090,65 +1161,130 @@ if(matchMedia('(display-mode: standalone)').matches) $('installInfo').textConten
    PDF REPORT
    ===================================================================== */
 function chartImage(fn, th, w, h){ const cfg=fn(th,true); if(!cfg) return null; const cv=document.createElement('canvas'); cv.width=w; cv.height=h; const ch=new Chart(cv,cfg); const u=cv.toDataURL('image/png'); ch.destroy(); return u; }
+// Detailed entries for the report: recent days come with the summary; older days are
+// fetched with the existing "day" endpoint, 4 at a time.
+async function entriesForDates(dates, onProgress){
+  const need=dates.filter(d=>!(summary.recent&&summary.recent[d]) && !dayCache[d]); const total=need.length; let done=0;
+  const worker=async()=>{ while(need.length){ const d=need.shift(); const r=await api('day',{date:d}); if(r.status==='success') dayCache[d]=r.entries||[]; done++; onProgress&&onProgress(done,total); } };
+  await Promise.all([worker(),worker(),worker(),worker()]);
+  const out={}; dates.forEach(d=>out[d]=entriesFor(d).slice().sort((a,b)=>(a.Time+a.Logged_At)<(b.Time+b.Logged_At)?-1:1)); return out;
+}
 $('pdfBtn').onclick=async()=>{
   if(!window.jspdf||!window.Chart){ $('pdfMsg').textContent='Report tools are still loading. Try again in a moment.'; return; }
   const days=effectiveDays(); if(!days.length){ $('pdfMsg').textContent='Log at least one day first.'; return; }
-  $('pdfBtn').disabled=true; $('pdfMsg').textContent='Building report…';
+  const range=$('pdfRange').value, detail = range==='all' ? days : days.filter(d=>d.date>addDays(sgToday(),-Number(range)));
+  $('pdfBtn').disabled=true; $('pdfMsg').textContent='Collecting entries…';
   try{
+    let byDate;
+    try{ byDate=await entriesForDates(detail.map(d=>d.date),(n,t)=>{ $('pdfMsg').textContent='Collecting entries… '+n+' / '+t+' days'; }); }
+    catch(e){ throw new Error(e instanceof NetError ? 'You are offline. The day-by-day pages need a connection to fetch older entries; try "Last 7 days".' : e.message); }
+    $('pdfMsg').textContent='Building report…';
     const dark=$('pdfTheme').value==='dark', th=THEMES[dark?'dark':'light'], p=profile();
-    const C = dark ? {bg:[14,19,22], ink:[227,236,238], muted:[139,156,163], line:[39,51,58], panel:[21,28,32], acc:[52,211,153], acc2:[34,211,238], bad:[242,109,109], vio:[167,139,250]}
-                   : {bg:[255,255,255], ink:[20,28,32], muted:[96,110,117], line:[222,228,230], panel:[243,246,247], acc:[15,157,116], acc2:[8,145,178], bad:[200,60,60], vio:[109,76,200]};
+    const C = dark ? {bg:[14,19,22], ink:[227,236,238], muted:[139,156,163], line:[39,51,58], panel:[21,28,32], panel2:[28,37,42], acc:[52,211,153], acc2:[34,211,238], bad:[242,109,109], warn:[242,182,76], vio:[167,139,250]}
+                   : {bg:[255,255,255], ink:[20,28,32], muted:[96,110,117], line:[222,228,230], panel:[243,246,247], panel2:[232,238,240], acc:[15,157,116], acc2:[8,145,178], bad:[200,60,60], warn:[180,120,10], vio:[109,76,200]};
     const { jsPDF } = window.jspdf; const doc=new jsPDF({unit:'pt',format:'a4'});
-    const W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=36, cw=W-2*M;
-    const target=r0((p.startKg-p.goalKg)*KCAL_PER_KG), cum=days[days.length-1].cumulative, pct=Math.max(0,cum)/target*100, lw=currentWeight(), pr=projection(days), last14=days.slice(-14);
-    const sgn = n => (n>=0?'-':'+')+fmt(Math.abs(n));           // deficit shown as minus (ASCII for PDF fonts)
+    const W=doc.internal.pageSize.getWidth(), H=doc.internal.pageSize.getHeight(), M=36, cw=W-2*M, BOTTOM=H-42;
+    const target=r0((p.startKg-p.goalKg)*KCAL_PER_KG), cum=days[days.length-1].cumulative, pct=Math.max(0,cum)/target*100, lw=currentWeight(), pr=projection(days);
+    const counted=days.filter(d=>d.counted), sum=(a,k)=>a.reduce((s,d)=>s+d[k],0);
+    const net = n => (n>=0?'-':'+')+fmt(Math.abs(n));             // net deficit shown as minus; ASCII for PDF fonts
+    const txt = v => String(v==null?'':v).replace(/^'/,'').replace(/[^\x20-\x7E -ÿ]/g,'');   // keep to the PDF font's character set
     const paint=()=>{ doc.setFillColor(...C.bg); doc.rect(0,0,W,H,'F'); doc.setFillColor(...C.acc); doc.rect(0,0,W,5,'F'); };
-    const footer=n=>{ doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...C.muted);
-      doc.text('Road to 80 | Generated '+sgParts().date+' '+sgParts().time.slice(0,5)+' SGT | Deficit = burned - eaten | 7,700 kcal = 1 kg', M, H-20); doc.text('Page '+n+' of 2', W-M, H-20, {align:'right'}); };
     const panel=(img,x,y,w,h,title)=>{ doc.setFillColor(...C.panel); doc.roundedRect(x,y,w,h,6,6,'F'); doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...C.ink); doc.text(title,x+10,y+16);
       if(img) doc.addImage(img,'PNG',x+6,y+24,w-12,h-30); else { doc.setFont('helvetica','normal'); doc.setTextColor(...C.muted); doc.text('No data yet',x+w/2,y+h/2,{align:'center'}); } };
+
+    /* ---------------- PAGE 1: overview ---------------- */
     paint();
-    doc.setFont('helvetica','bold'); doc.setFontSize(24); doc.setTextColor(...C.ink); doc.text('ROAD TO', M, 48); doc.setTextColor(...C.acc); doc.text(String(p.goalKg), M+doc.getTextWidth('ROAD TO '), 48);
+    doc.setFont('helvetica','bold'); doc.setFontSize(24); doc.setTextColor(...C.ink); doc.text('ROAD TO', M, 46); doc.setTextColor(...C.acc); doc.text(String(p.goalKg), M+doc.getTextWidth('ROAD TO '), 46);
     doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(...C.muted);
-    doc.text('Progress report | '+fmtDate(days[0].date,{day:'numeric',month:'short',year:'numeric'})+' to '+fmtDate(days[days.length-1].date,{day:'numeric',month:'short',year:'numeric'})+' | '+p.startKg+' kg start, '+p.goalKg+' kg goal', M, 66);
-    // milestone band
-    let y=82; doc.setFillColor(...C.panel); doc.roundedRect(M,y,cw,70,6,6,'F');
-    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...C.muted); doc.text('CUMULATIVE DEFICIT', M+12, y+17);
-    doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(...C.acc); doc.text(fmt(cum), M+12, y+40);
-    doc.setFontSize(11); doc.setTextColor(...C.muted); doc.text('/ '+fmt(target)+' kcal  |  '+pct.toFixed(1)+'%  |  '+(cum/KCAL_PER_KG).toFixed(2)+' kg projected fat lost', M+14+doc.getTextWidth(fmt(cum))*20/11, y+40);
-    doc.setFillColor(...C.line); doc.roundedRect(M+12,y+50,cw-24,9,4,4,'F'); doc.setFillColor(...C.acc); if(pct>0) doc.roundedRect(M+12,y+50,Math.max(9,(cw-24)*Math.min(1,pct/100)),9,4,4,'F');
-    y+=80;
-    const avg=a=>a.length?a.reduce((s,v)=>s+v,0)/a.length:0, lb=latestOf('sys');
-    const tiles=[['Current weight',lw.toFixed(1)+' kg'],['Scale lost',Math.max(0,p.startKg-lw).toFixed(1)+' kg'],['Days to '+p.goalKg+' kg',pr.days!=null?pr.days+' d':'--'],['Avg deficit (7 d)',pr.avg!=null?fmt(pr.avg)+' kcal':'--'],
-      ['Avg eaten (14)',fmt(avg(last14.filter(d=>d.counted).map(d=>d.food)))+' kcal'],['Avg steps (14)',fmt(avg(last14.map(d=>d.steps)))],['Last BP (measured)',lb?lb.v+'/'+(lb.row.dia??'-'):'--'],['Est. systolic drop','-'+Math.max(0,p.startKg-lw).toFixed(1)+' mmHg']];
-    const tw=(cw-24)/4, tH=46;
+    doc.text('Progress report | '+fmtDate(days[0].date,{day:'numeric',month:'short',year:'numeric'})+' to '+fmtDate(days[days.length-1].date,{day:'numeric',month:'short',year:'numeric'})+' | '+days.length+' days logged | '+p.startKg+' kg start, '+p.goalKg+' kg goal', M, 63);
+    let y=76; doc.setFillColor(...C.panel); doc.roundedRect(M,y,cw,66,6,6,'F');
+    doc.setFontSize(8); doc.setTextColor(...C.muted); doc.text('CUMULATIVE DEFICIT MILESTONE', M+12, y+16);
+    doc.setFont('helvetica','bold'); doc.setFontSize(20); doc.setTextColor(...C.acc); doc.text(fmt(cum), M+12, y+38);
+    const cumW=doc.getTextWidth(fmt(cum)); doc.setFontSize(11); doc.setTextColor(...C.muted);
+    doc.text('/ '+fmt(target)+' kcal  |  '+pct.toFixed(1)+'% complete  |  '+(cum/KCAL_PER_KG).toFixed(2)+' kg projected fat lost', M+16+cumW, y+38);
+    doc.setFillColor(...C.line); doc.roundedRect(M+12,y+47,cw-24,8,4,4,'F'); doc.setFillColor(...C.acc); if(pct>0) doc.roundedRect(M+12,y+47,Math.max(8,(cw-24)*Math.min(1,pct/100)),8,4,4,'F');
+    doc.setDrawColor(...C.bg); for(let k=5;k<p.startKg-p.goalKg;k+=5){ const x=M+12+(cw-24)*k/(p.startKg-p.goalKg); doc.line(x,y+47,x,y+55); }
+    y+=74;
+    const bs=bpWeightSummary(), lb=latestOf('sys');
+    const tiles=[
+      ['Current weight', lw.toFixed(1)+' kg'], ['Scale lost', Math.max(0,p.startKg-lw).toFixed(1)+' kg'], ['Days to '+p.goalKg+' kg', pr.days!=null?pr.days+' days':'--'], ['Avg deficit (7 d)', pr.avg!=null?fmt(pr.avg)+' kcal':'--'],
+      ['Total burned', fmt(sum(counted,'burned'))+' kcal'], ['Total eaten', fmt(sum(counted,'food'))+' kcal'], ['Latest BP', lb?lb.v+'/'+(lb.row.dia??'-'):'--'], ['BP since first', bs&&bs.n>1?(bs.dSys<=0?'-':'+')+Math.abs(bs.dSys)+' mmHg':'--']];
+    const tw=(cw-24)/4, tH=44;
     tiles.forEach(([k,v],i)=>{ const x=M+(i%4)*(tw+8), yy=y+Math.floor(i/4)*(tH+8); doc.setFillColor(...C.panel); doc.roundedRect(x,yy,tw,tH,6,6,'F');
-      if(i===7){ doc.setDrawColor(...C.vio); doc.setLineDashPattern([3,2],0); doc.roundedRect(x,yy,tw,tH,6,6,'S'); doc.setLineDashPattern([],0); }
-      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...C.muted); doc.text(k.toUpperCase(), x+10, yy+15);
-      doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(...(i===7?C.vio:i<2?C.acc:C.ink)); doc.text(v, x+10, yy+35); });
-    y+=2*(tH+8)+4;
-    panel(chartImage(cumCfg,th,1600,520), M, y, cw, 175, 'Cumulative deficit (dashed = next 5 kg mark)'); y+=183;
-    panel(chartImage(weightCfg,th,1600,560), M, y, cw, 190, 'Weight: '+p.startKg+' kg to '+p.goalKg+' kg (dashed grey = projection)'); y+=198;
-    footer(1);
-    doc.addPage(); paint(); y=36;
-    const hw=(cw-10)/2;
-    panel(chartImage(calCfg,th,1000,600), M, y, hw, 175, 'Eaten vs burned (last 14 days)');
-    panel(chartImage(stepsCfg,th,1000,600), M+hw+10, y, hw, 175, 'Steps (last 14 days, target 10,000)'); y+=190;
-    doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...C.muted); doc.text('14-DAY LEDGER', M, y); y+=10;
-    const cols=[['Date',0],['Day',60],['Wt kg',100],['Eaten',142],['Burned',190],['Deficit',240],['Cumul.',292],['Steps',346],['BP',398],['H2O',446]];
-    doc.setFillColor(...C.panel); doc.rect(M,y,cw,20,'F'); doc.setFontSize(8); cols.forEach(c=>doc.text(c[0].toUpperCase(), M+8+c[1], y+13)); y+=20;
-    doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
-    last14.slice().reverse().forEach(d=>{ const vals=[fmtDate(d.date,{day:'2-digit',month:'short'}), d.tag, d.weight!=null?d.weight.toFixed(1):'-', fmt(d.food), fmt(d.burned), d.counted?sgn(d.deficit):'n/c', fmt(d.cumulative), fmt(d.steps), d.sys!=null?d.sys+'/'+(d.dia??'-'):'-', d.water.toFixed(1)];
-      vals.forEach((v,i)=>{ let col=C.ink; if(i===5&&d.counted) col=d.deficit>=0?C.acc:C.bad; if(i===8&&d.sys>BP_LIMIT) col=C.bad; if(i===1&&d.tag!=='Normal') col=C.vio; doc.setTextColor(...col); doc.text(String(v), M+8+cols[i][1], y+13); });
-      doc.setDrawColor(...C.line); doc.line(M,y+19,M+cw,y+19); y+=20; });
-    y+=14;
-    panel(chartImage(bpCfg,th,1600,480), M, y, cw, 150, 'Measured blood pressure (last 30 days, dashed = 140 limit)'); y+=158;
-    doc.setFillColor(...C.panel); doc.roundedRect(M,y,cw,48,6,6,'F'); doc.setDrawColor(...C.vio); doc.setLineDashPattern([3,2],0); doc.roundedRect(M,y,cw,48,6,6,'S'); doc.setLineDashPattern([],0);
-    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(...C.vio); doc.text('MODEL ESTIMATE, NOT A READING', M+10, y+15);
-    doc.setFont('helvetica','normal'); doc.setTextColor(...C.ink);
-    doc.text(doc.splitTextToSize('Estimated systolic drop from weight lost: -'+Math.max(0,p.startKg-lw).toFixed(1)+' mmHg (1 mmHg per kg, a population average). Only measured readings drive the workout safety check.', cw-20), M+10, y+29);
-    footer(2);
-    const name='road-to-80_report_'+sgToday()+'.pdf'; doc.save(name); $('pdfMsg').textContent='Saved '+name;
+      doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...C.muted); doc.text(k.toUpperCase(), x+10, yy+14);
+      const col = i<2?C.acc : i===4?C.acc2 : (i===6&&lb&&lb.v>BP_LIMIT)?C.bad : (i===7&&bs&&bs.dSys<0)?C.acc : C.ink;
+      doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.setTextColor(...col); doc.text(v, x+10, yy+33); });
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...C.muted);
+    doc.text('Totals cover the '+counted.length+' days with food logged (the same days the cumulative deficit counts).', M, y+2*(tH+8)+4);
+    y+=2*(tH+8)+12;
+    const ch=158;
+    panel(chartImage(weightCfg,th,1600,520), M, y, cw, ch, 'Weight: '+p.startKg+' kg to '+p.goalKg+' kg (dashed grey = projection)'); y+=ch+8;
+    panel(chartImage(cumCfg,th,1600,520), M, y, cw, ch, 'Cumulative deficit (dashed = next 5 kg mark; 7,700 kcal = 1 kg)'); y+=ch+8;
+    panel(chartImage(bpWeightCfg,th,1600,520), M, y, cw, ch, 'Blood pressure vs weight (red = systolic, green = weight on right axis, violet = expected from weight)'); y+=ch+4;
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...C.muted);
+    doc.text(doc.splitTextToSize(txt(bpWeightText(bs,true))+' Expected line assumes about 1 mmHg per kg lost; it is a model, not a reading.', cw), M, y+8);
+
+    /* ---------------- PAGE 2+: day by day ---------------- */
+    doc.addPage(); paint(); y=40;
+    const first=days[0].date;
+    const heading=(cont)=>{ doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.setTextColor(...C.ink); doc.text('DAY-BY-DAY LOG'+(cont?' (continued)':''), M, y);
+      doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...C.muted); doc.text('Times are Singapore time. Net = eaten - burned; a minus figure is a deficit.', W-M, y, {align:'right'}); y+=14; };
+    const newPage=()=>{ doc.addPage(); paint(); y=40; heading(true); };
+    const ensure=h=>{ if(y+h>BOTTOM){ newPage(); return true; } return false; };
+    heading(false);
+    detail.forEach(d=>{
+      const list=byDate[d.date]||[], foods=list.filter(e=>e.Type==='food'), works=list.filter(e=>e.Type==='workout'), notes=list.filter(e=>e.Type==='note');
+      const dayNo=daysBetween(first,d.date)+1;
+      const dayHead=cont=>{
+        doc.setFillColor(...C.panel2); doc.roundedRect(M,y,cw,22,4,4,'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.setTextColor(...C.ink);
+        doc.text('Day '+dayNo+'  |  '+fmtDate(d.date,{weekday:'short',day:'numeric',month:'short',year:'numeric'})+(d.tag!=='Normal'?'  |  '+d.tag+' day':'')+(cont?'  (cont.)':''), M+8, y+15);
+        doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+        const right='Eaten '+fmt(d.food)+'   Burned '+fmt(d.burned)+'   ';
+        const netTxt = d.counted ? 'Net '+(d.deficit>=0?'-':'+')+fmt(Math.abs(d.deficit)) : 'Not counted (no food logged)';
+        doc.setFont('helvetica','bold'); doc.setTextColor(...(d.counted?(d.deficit>=0?C.acc:C.bad):C.muted)); doc.text(netTxt, W-M-8, y+15, {align:'right'});
+        const nw=doc.getTextWidth(netTxt); doc.setFont('helvetica','normal'); doc.setTextColor(...C.muted); doc.text(right, W-M-8-nw, y+15, {align:'right'});
+        y+=28; };
+      ensure(22+14+16+14*Math.min(3,foods.length||1)); dayHead(false);
+      // biometrics line
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...C.ink);
+      const bio=['Weight '+(d.weight!=null?d.weight.toFixed(1)+' kg':'not logged ('+d.weightUsed.toFixed(1)+' used)'),
+        'BP '+(d.sys!=null?d.sys+'/'+(d.dia??'-')+(d.sys>BP_LIMIT?' (above 140)':''):'not logged'), 'Steps '+fmt(d.steps), 'Water '+d.water.toFixed(2)+' L'];
+      doc.text(bio.join('   |   '), M+8, y+2); y+=14;
+      // food table
+      const fx=[M+8, M+58, M+360, M+420];
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...C.muted);
+      ['TIME','FOOD','QTY','KCAL'].forEach((h,i)=>doc.text(h, fx[i]+(i===3?60:0), y, i===3?{align:'right'}:undefined)); y+=4;
+      doc.setDrawColor(...C.line); doc.line(M+8,y,M+cw-8,y); y+=10;
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+      if(!foods.length){ doc.setTextColor(...C.muted); doc.text('No food logged.', fx[1], y); y+=12; }
+      foods.forEach(e=>{
+        if(ensure(12)) dayHead(true);
+        const cheat=/cheat/i.test(e.Item); doc.setTextColor(...(cheat?C.warn:C.ink));
+        doc.text(String(e.Time).slice(0,8), fx[0], y); doc.text(txt(e.Item).slice(0,60)+(e.pending?' (not yet synced)':''), fx[1], y);
+        doc.text('x'+Number(e.Qty)+' @ '+fmt(e.Kcal_Each), fx[2], y); doc.text(fmt(e.Kcal), fx[3]+60, y, {align:'right'}); y+=12; });
+      if(works.length){ if(ensure(12)) dayHead(true);
+        doc.setTextColor(...C.acc2); works.forEach(e=>{ if(ensure(12)) dayHead(true);
+          doc.text(String(e.Time).slice(0,8), fx[0], y); doc.text('Workout: '+txt(e.Item)+(e.Value?' ('+e.Value+' min)':''), fx[1], y); doc.text('-'+fmt(e.Kcal)+' burned', fx[3]+60, y, {align:'right'}); y+=12; }); }
+      notes.forEach(e=>{ const lines=doc.splitTextToSize('Note '+String(e.Time).slice(0,5)+': '+txt(e.Note), cw-70).slice(0,3); if(ensure(lines.length*11)) dayHead(true);
+        doc.setTextColor(...C.muted); doc.text(lines, fx[1], y); y+=lines.length*11; });
+      // totals
+      if(ensure(28)) dayHead(true);
+      doc.setDrawColor(...C.line); doc.line(M+8,y-4,M+cw-8,y-4); y+=6;
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...C.ink);
+      doc.text('Consumed '+fmt(d.food)+' kcal  vs  Burned '+fmt(d.burned)+' kcal', fx[0], y);
+      doc.setFont('helvetica','normal'); doc.setTextColor(...C.muted);
+      doc.text('(BMR '+fmt(d.bmr)+' + steps '+fmt(d.stepKcal)+' + workouts '+fmt(d.workout)+')', fx[0]+doc.getTextWidth('Consumed '+fmt(d.food)+' kcal  vs  Burned '+fmt(d.burned)+' kcal')+14, y);
+      doc.setFont('helvetica','bold'); doc.setTextColor(...(d.counted?(d.deficit>=0?C.acc:C.bad):C.muted));
+      doc.text(d.counted?(d.deficit>=0?'Net deficit '+fmt(d.deficit):'Net surplus '+fmt(-d.deficit))+' kcal':'Not counted', fx[3]+60, y, {align:'right'});
+      y+=22;
+    });
+    // footers with page numbers
+    const n=doc.getNumberOfPages();
+    for(let i=1;i<=n;i++){ doc.setPage(i); doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...C.muted);
+      doc.text('Road to '+p.goalKg+' | Generated '+sgParts().date+' '+sgParts().time.slice(0,5)+' SGT | Burned = BMR + steps + workouts | 7,700 kcal = 1 kg', M, H-20);
+      doc.text('Page '+i+' of '+n, W-M, H-20, {align:'right'}); }
+    const name='road-to-80_report_'+sgToday()+'.pdf'; doc.save(name); $('pdfMsg').textContent='Saved '+name+' ('+n+' pages, '+detail.length+' days in detail).';
   }catch(e){ $('pdfMsg').textContent='Could not build the report: '+e.message; }
   finally{ $('pdfBtn').disabled=false; }
 };
